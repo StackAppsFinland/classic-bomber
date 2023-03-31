@@ -16,7 +16,7 @@ let specialEffects = [];
 let destroying = [];
 let directHitBonus = 0;
 let bonusPoints = 0;
-let testModeCounter = 0;
+let testModeCounter = 4;
 let bombDropStartTime = 0;
 const clouds = [];
 const cloudSpeed = 1;
@@ -148,7 +148,7 @@ function createBuildings() {
     const totalWidth = buildingCount * buildingWidth + (buildingCount - 1) * buildingGap;
     const startX = (canvasWidth - totalWidth) / 2;
 
-    for (let i = 0; i < buildingCount; i++) {
+    for (let i = 0; i < 20; i++) {
         let maxHeight = gameLevel.maxHeight;
         let minHeight = gameLevel.minHeight;
 
@@ -166,8 +166,8 @@ function createBuildings() {
 
         const x = startX + i * (buildingWidth + buildingGap);
         let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-        const building = new Building(x, blocks, currentScore, testModeCounter > 3)
-        log("Add child building child i to container")
+        const building = new Building(x, canvasHeight - groundHeight, blocks)
+        log("Add child building child " + i + "to container at " + x + ", startY: " + (canvasHeight - groundHeight) + " blocks: " + blocks)
         app.stage.addChild(building.getBuildingContainer());
         buildings.push();
     }
