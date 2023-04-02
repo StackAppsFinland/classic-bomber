@@ -1,6 +1,10 @@
 import Score from './score.js';
 import Building from './building.js';
+import Aircraft from "./aircraft.js";
+import BuildingExplosion from "./buildingExplosion.js";
+import Bomb from "./bomb.js";
 import levels from './levels.js';
+import ParticleExplosion from "./particleExplosion.js";
 
 const groundHeight = 10;
 const buildingGap = 8;
@@ -10,7 +14,6 @@ const currentScore = new Score();
 let buildings = [];
 let currentBuilding = 0;
 let buildingCount = 0;
-let bombs = [];
 let allowedNumberOfBombs = 1;
 let specialEffects = [];
 let destroying = [];
@@ -20,18 +23,20 @@ let testModeCounter = 4;
 let bombDropStartTime = 0;
 const clouds = [];
 const cloudSpeed = 1;
+let initialDelay = 0;
 
 
-// let aircraft = new Aircraft(1, ctx, currentScore);
+
 
 // Create a PixiJS Application
 const app = new PIXI.Application({
     width: 1000,
-    height: 700,
+    height: 600,
     backgroundColor: 0x87CEEB, // Sky blue color
     resolution: window.devicePixelRatio || 1,
 });
 
+handleInput()
 // Add after app created
 const canvasWidth = app.screen.width;
 const canvasHeight = app.screen.height;
@@ -40,14 +45,250 @@ const scoreDisplay = drawScoreDisplay();
 // Add the application view to the HTML body
 document.body.appendChild(app.view);
 
+const staticParts = drawStaticParts();
+const buildingsContainer = new PIXI.Container();
+app.stage.addChild(buildingsContainer);
+const buildingDamageContainer = new PIXI.Container();
+app.stage.addChild(buildingDamageContainer);
+
+createBuildings()
+
+// add bombs before aircraft for them to appear behind
+const bombContainer = new PIXI.Container();
+app.stage.addChild(bombContainer);
+
+const aircraft = new Aircraft(app, currentScore, 1.5);
+app.stage.addChild(aircraft.getContainer());
+app.stage.addChild(aircraft.bombSightContainer);
+app.ticker.add(gameLoop);
+
 // Define the game loop
 function gameLoop(delta) {
     updateScoreDisplay();
-    currentScore.add(1);
+
+    revealBuildings();
+    aircraft.updatePosition();
+    updateBombs();
+    updateBuildingDamage();
+    updateSpecialEffects();
 }
 
-// Add the game loop to the PixiJS Ticker
-app.ticker.add(gameLoop);
+function updateSpecialEffects() {
+    for (let i = specialEffects.length - 1; i >= 0; i--) {
+        specialEffects[i].update();
+
+        // Clean up finished explosions
+        if (specialEffects[i].isFinished) {
+            app.stage.removeChild(specialEffects[i].container);
+            specialEffects.splice(i, 1);
+        }
+    }
+}
+
+function dropBomb() {
+    const bombX = aircraft.container.x + aircraft.halfWidth;
+    const bombY = aircraft.container.y + 10;
+    const bomb = new Bomb(bombX - 4, bombY, 4);
+    const bombSpriteContainer = bomb.getContainer();
+    bombSpriteContainer.bombInstance = bomb;
+    bombContainer.addChild(bombSpriteContainer);
+}
+
+function updateBuildingDamage() {
+    for (let j = 0; j < buildingsContainer.children.length; j++) {
+        const buildingSpriteContainer = buildingsContainer.children[j];
+        const building = buildingSpriteContainer.buildingInstance;
+        building.removalBlock(app.stage, specialEffects);
+    }
+}
+
+function updateBombs() {
+    for (let i = bombContainer.children.length - 1; i >= 0; i--) {
+        const bombSpriteContainer = bombContainer.children[i];
+        bombSpriteContainer.bombInstance.updatePosition();
+
+        if (bombSpriteContainer.y > canvasHeight) {
+            bombContainer.removeChild(bombSpriteContainer);
+        } else {
+            for (let j = 0; j < buildingsContainer.children.length; j++) {
+                const buildingRect = buildingsContainer.children[j].getBounds()
+                buildingRect.width = buildingRect.width - 6;
+                buildingRect.x = buildingRect.x + 3;
+
+                if (bombSpriteContainer.getBounds().intersects(buildingRect)) {
+                    const buildingSpriteContainer = buildingsContainer.children[j];
+                    const building = buildingSpriteContainer.buildingInstance;
+                    const bounds = buildingSpriteContainer.getBounds();
+
+                    bombContainer.removeChild(bombSpriteContainer);
+                    building.setRemovalAmount(2);
+
+                    // calculate distance from center of building.
+                    const center = buildingRect.x + (buildingRect.width / 2)
+                    const difference = Math.abs(bombSpriteContainer.x - center);
+
+                    if (difference < 15) {
+                        building.setRemovalAmount(2);
+                        currentScore.add(1);
+                        console.log("< 15 diff - 2 blocks !")
+                    }
+
+                    if (difference < 10) {
+                        building.setRemovalAmount(4);
+                        console.log("< 10 diff - 4 blocks !")
+                        currentScore.add(2);
+                    }
+
+                    if (difference < 7) {
+                        building.setRemovalAmount(6);
+                        console.log("< 6 diff - 6 blocks !")
+                        currentScore.add(4);
+                    }
+
+                    if (difference < 4) {
+                        console.log("< 4 diff  bonus 8")
+                        building.setRemovalAmount(8);
+                        currentScore.add(8);
+                        directHitBonus++;
+                        bonusPoints += 10;
+                        if (directHitBonus > 2) {
+                            const amount = directHitBonus * directHitBonus * 10;
+                            currentScore.add(amount);
+                            //specialEffects.push(new Message("+" + amount + "!", center, building.topBlockY));
+                        } else {
+                            //specialEffects.push(new Message("+10!", center, building.topBlockY));
+                        }
+                    } else {
+                        directHitBonus = 0;
+                    }
+
+                    // hitBuildingTop = true;
+                    createExplosion(bombSpriteContainer.x, bounds.y + 8, 1000, 100);
+                    createBuildingExplosion(bombSpriteContainer.x, bounds.y + 16, 2000, 100);
+                    // specialEffects.push(new ParticleExplosion(bomb.x, building.topBlockY, 100, 50));
+                    // building.startRemove();
+                    // destroying.push(building);
+                    break;
+                }
+
+
+                // buildingSprite.removeChildAt(buildingSprite.children.length - 1);
+            }
+        }
+    }
+}
+
+function createBuildingExplosion(x, y, duration, numberOfParticles) {
+    const explosion = new BuildingExplosion(x, y, duration, numberOfParticles);
+    app.stage.addChild(explosion.container);
+    specialEffects.push(explosion);
+}
+
+function createExplosion(x, y, duration, numberOfParticles) {
+    const explosion = new ParticleExplosion(x, y, duration, numberOfParticles);
+    app.stage.addChild(explosion.container);
+    specialEffects.push(explosion);
+}
+
+function handleInput() {
+    window.addEventListener('keydown', (event) => {
+        if (event.code === 'KeyT') {
+            testModeCounter++;
+
+            if (testModeCounter > 3) {
+                aircraft.speed = 0;
+            }
+
+            return;
+        }
+
+        if (testModeCounter <= 3)
+            testModeCounter = 0;
+
+        if (event.code === 'Space') {
+            dropBomb();
+        }
+
+        if (event.code === 'Enter' && aircraft.mode !== 'flying') {
+            currentScore.level = currentScore.level + 1;
+            createBuildings();
+        }
+
+        if (event.code === 'KeyR' && aircraft.isCrashed) {
+            createBuildings();
+        }
+
+        if (event.code === "KeyP") {
+            // skip to next level when complete without watching plane land
+        }
+
+        if (event.code === 'KeyP') {
+            aircraft.togglePause()
+        }
+
+        if (testModeCounter > 3) {
+            if (event.code === 'Escape') {
+                aircraft.isPaused = false;
+                testModeCounter = 0;
+            }
+            if (event.code === 'ArrowRight') {
+                aircraft.step()
+            }
+            if (event.code === 'ArrowLeft') {
+                aircraft.stepBack()
+            }
+            if (event.code === 'KeyX') {
+                aircraft.stepAmount(10)
+            }
+            if (event.code === 'KeyZ') {
+                aircraft.stepAmount(-10)
+            }
+            if (event.code === 'KeyE') {
+                aircraft.levelFlight()
+            }
+            if (event.code === 'ArrowDown') {
+                aircraft.stepDown()
+            }
+            if (event.code === 'ArrowUp') {
+                aircraft.stepUp()
+            }
+            if (event.code === 'KeyQ') {
+                aircraft.rotateCounterClockwise()
+            }
+            if (event.code === 'KeyW') {
+                aircraft.rotateClockwise()
+            }
+            if (event.code === 'ArrowUp') {
+                aircraft.stepUp()
+            }
+            if (event.code === 'KeyL') {
+                currentScore.level = currentScore.level + 1;
+                if (currentScore.level > levels.length) currentScore.level = 1;
+                createBuildings();
+            }
+            if (event.code === 'KeyK') {
+                currentScore.level = currentScore.level -1;
+                if (currentScore.level < 1) currentScore.level = levels.length;
+                createBuildings();
+            }
+            if (event.code === 'KeyJ') {
+                createBuildings();
+            }
+        }
+    });
+}
+
+function revealBuildings() {
+    initialDelay++;
+    if (initialDelay > 60) {
+
+        const unrevealedBuilding = buildings.find(building => !building.isRevealed);
+
+        if (unrevealedBuilding) {
+            unrevealedBuilding.reveal(16);
+        }
+    }
+}
 
 function drawScoreDisplay() {
     const scoreStyle = new PIXI.TextStyle({
@@ -123,12 +364,14 @@ function drawStaticParts() {
     return groundGraphics;
 }
 
-const staticParts = drawStaticParts();
-createBuildings()
-
-
 // Create buildings
 function createBuildings() {
+    for (let i = buildingsContainer.children.length - 1; i >= 0; i--) {
+        const child = buildingsContainer.children[i];
+        child.destroy();
+    }
+
+    buildingsContainer.removeChildren();
     //aircraft.reset();
     //aircraft.isCrashed = false
 
@@ -138,6 +381,7 @@ function createBuildings() {
     currentBuilding = 0;
     bonusPoints = 0;
 
+    currentScore.level = 15;
     let gameLevel = levels.find(level => level.id === currentScore.level);
     if (!gameLevel) gameLevel = levels.find(level => level.id === 1);
     log("Game level id: " + gameLevel.id);
@@ -148,7 +392,7 @@ function createBuildings() {
     const totalWidth = buildingCount * buildingWidth + (buildingCount - 1) * buildingGap;
     const startX = (canvasWidth - totalWidth) / 2;
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < buildingCount; i++) {
         let maxHeight = gameLevel.maxHeight;
         let minHeight = gameLevel.minHeight;
 
@@ -167,9 +411,11 @@ function createBuildings() {
         const x = startX + i * (buildingWidth + buildingGap);
         let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
         const building = new Building(x, canvasHeight - groundHeight, blocks)
-        log("Add child building child " + i + "to container at " + x + ", startY: " + (canvasHeight - groundHeight) + " blocks: " + blocks)
-        app.stage.addChild(building.getBuildingContainer());
-        buildings.push();
+        const buildingSpriteContainer = building.getBuildingContainer();
+        buildingSpriteContainer.buildingInstance = building;
+        buildingsContainer.addChild(buildingSpriteContainer)
+        buildingDamageContainer.addChild(building.damageContainer);
+        buildings.push(building);
     }
 }
 
@@ -179,8 +425,8 @@ function log(message) {
 
 // Resize function to maintain aspect ratio and handle padding
 function resize() {
-    const padding = 10;
-    const aspectRatio = 10 / 7;
+    const padding = 50;
+    const aspectRatio = 10 / 6;
     const windowWidth = window.innerWidth - 2 * padding;
     const windowHeight = window.innerHeight - 2 * padding;
 

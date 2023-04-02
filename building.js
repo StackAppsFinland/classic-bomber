@@ -1,61 +1,34 @@
-//import Explosion from './buildingCollapseEffect.js';
+import BuildingExplosion from "./buildingExplosion.js";
 
 const buildingWidth = 40;
 const blockHeight = 16;
-const blockBuildTime = 1.2;
-const blockRemoveTime = 150;
 
 class Building {
-    constructor(x, startYpos, blocks) {
+    constructor(x, y, blocks) {
         this.x = x;
-        this.startYpos = startYpos;
+        this.y = y;
         this.blocks = blocks;
-        this.currentBlocks = 0;
         this.baseImg = PIXI.Texture.from(`images/base${Math.floor(Math.random() * 15) + 1}.png`);
         this.roofImg = PIXI.Texture.from(`images/roof${Math.floor(Math.random() * 18) + 1}.png`);
         this.storeyImg = PIXI.Texture.from(`images/storey${Math.floor(Math.random() * 14) + 1}.png`);
-        this.blockArray = [];
-        this.topBlockY = 0;
-        this.removeStartTime = null;
-        this.blocksRemoved = 100;
-        this.removalAmount = 0;
-        this.damageArray = [];
+        this.container = new PIXI.Container();
         this.damageContainer = new PIXI.Container();
-        this.buildingContainer = new PIXI.Container();
-    }
-
-    getDamageContainer() {
-        // We might be able to use the container as it should have the total width and height of all parts
-        this.damageContainer.removeChildren()
-        
-        for (let j = 0; j < this.damageArray.length; j++) {
-            const damage = this.damageArray[j];
-            const damageX = this.x + damage.x * buildingWidth / 40;
-            const damageY = this.topBlockY + damage.y * blockHeight / 16;
-            const damageRect = new PIXI.Graphics();
-            damageRect.beginFill(0x87CEEB);
-            damageRect.drawCircle(damageX, damageY, 4, 4);
-            damageRect.endFill();
-            damageContainer.addChild(damageRect);
-        }
-    }
-    
-    removeTop() {
-        
-    }
-
-    setRemovalAmount(amount) {
-        this.removalAmount = amount;
+        this.isRevealed = false;
+        this.revealY = this.y;
+        this.removalAmount = 0;
+        this.lastMillis = 0;
+        this.topBlockY = 0;
+        this.damageRectangles = []
     }
 
     getBuildingContainer() {
-        for (let i = 0; i < this.currentBlocks; i++) {
-            const posY = this.startYpos - (i + 1) * blockHeight;
+        for (let i = 0; i < this.blocks; i++) {
+            const posY = this.y - (i + 1) * blockHeight;
 
             let blockTexture;
-            if (this.currentBlocks === 0) {
+            if (i === 0) {
                 blockTexture = this.baseImg;
-            } else if (this.currentBlocks === this.blocks - 1) {
+            } else if (i === this.blocks - 1) {
                 blockTexture = this.roofImg;
             } else {
                 blockTexture = this.storeyImg;
@@ -66,59 +39,107 @@ class Building {
             blockSprite.y = posY;
             blockSprite.width = buildingWidth;
             blockSprite.height = blockHeight;
-            this.buildingContainer.addChild(blockSprite);
-        }
-        
-        return this.buildingContainer;
-    }
-
-    showDamage() {
-        const totalDamagePoints = Math.floor(Math.random() * 20) + 5; // random number between 10 and 15
-        this.damageArray = [];
-
-        for (let i = 0; i < totalDamagePoints; i++) {
-            let randomX = Math.floor(Math.random() * 40); // random number between 0 and 39
-            let randomY = Math.floor(Math.random() * 16); // random number between 0 and 6
-            this.damageArray.push({ x: randomX, y: randomY });
+            this.container.addChild(blockSprite);
+            this.topBlockY = posY;
         }
 
-        for (let i = 0; i < 10; i++) {
-            let randomX = Math.floor(Math.random() * 8); // random number between 0 and 39
-            let randomY = Math.floor(Math.random() * 5); // random number between 0 and 6
-            this.damageArray.push({ x: randomX, y: randomY });
+        // Create a PIXI.Graphics object for the mask
+        const mask = new PIXI.Graphics();
+
+        // Draw a rectangle for the mask, covering the entire building container
+        mask.beginFill(0xffffff);
+        mask.drawRect(this.x, this.y, buildingWidth, this.y);
+        mask.endFill();
+
+        // Set the mask for the building container
+        this.container.mask = mask;
+
+        return this.container;
+    }
+
+    reveal(speed) {
+        const mask = this.container.mask;
+
+        this.revealY = this.revealY - speed;
+        if (this.revealY < this.topBlockY) {
+            this.revealY = this.topBlockY;
+            this.isRevealed = true;
         }
-        for (let i = 0; i < 10; i++) {
-            let randomX = Math.floor(buildingWidth - Math.random() * 8); // random number between 0 and 39
-            let randomY = Math.floor(Math.random() * 5); // random number between 0 and 6
-            this.damageArray.push({ x: randomX, y: randomY });
+
+        mask.beginFill(0xffffff);
+        mask.drawRect(this.x, this.revealY, buildingWidth, this.y);
+        mask.endFill();
+    }
+
+    setRemovalAmount(amount) {
+        this.removalAmount = amount;
+    }
+
+    removalBlock(stage, specialEffects) {
+        const currentMillis = Date.now();
+
+        if (currentMillis > this.lastMillis) {
+            this.lastMillis = currentMillis + 100;
+            if (this.removalAmount > 0 && this.container.children.length > 0) {
+                const blockSprite = this.container.children[this.container.children.length - 1];
+                this.container.removeChild(blockSprite);
+
+                const explosion = new BuildingExplosion(blockSprite.x + 2 + Math.random() * 38, blockSprite.y + blockHeight, 2300, 50);
+                stage.addChild(explosion.container);
+                specialEffects.push(explosion);
+                this.removalAmount--;
+
+                if (this.removalAmount <= 0) this.createDamagedArea()
+            }
         }
     }
 
-    startRemove() {
-        this.blocksRemoved = 0;
+    randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    getTopYPos() {
-        return this.currentBlocks == 0 ? 0 : this.topBlockY;
-    }
+    createDamagedArea() {
+        this.damageContainer.removeChildren();
 
-    removeTopBlocks(explosions) {
-        if (this.blocksRemoved >= this.removalAmount) {
+        if (this.container.children.length < 1) {
             return;
         }
 
-        if (this.removeStartTime === null) {
-            this.removeStartTime = Date.now();
-        }
+        const blockSprite = this.container.children[this.container.children.length - 1];
 
-        const elapsedTime = Date.now() - this.removeStartTime;
-        const blocksToRemove = Math.floor(elapsedTime / blockRemoveTime);
-        if (blocksToRemove > 0 && this.blockArray.length > 0) {
-            this.blockArray.pop();
-            this.blocksRemoved++;
-            this.currentBlocks = this.blockArray.length;
-            this.removeStartTime = Date.now();
-           // explosions.push(new Explosion(this.x + Math.random() * 38, this.topBlockY + 16, 150, 30));
+        if (blockSprite) {
+            let damageCount = this.randomInt(20, 30);
+
+            for (let i = 0; i < damageCount; i++) {
+                // Create a sky-blue circle of size 6x6
+                const rectangle = new PIXI.Graphics();
+                rectangle.beginFill(0x87ceeb); // Set the fill color (sky-blue)
+                rectangle.drawRect(blockSprite.x + this.randomInt(0, 42) - 2, blockSprite.y + this.randomInt(-3, 15),
+                    this.randomInt(1, 4), this.randomInt(1, 4)); // Draw a rectangle with the given width and height
+                rectangle.endFill();
+
+                // Add the circle to the buildingsContainer
+                this.damageContainer.addChild(rectangle);
+
+                // Store the circle in the circles array
+                this.damageRectangles.push(rectangle);
+            }
+
+            damageCount = this.randomInt(3, 7);
+            for (let i = 0; i < damageCount; i++) {
+                // Create a sky-blue circle of size 6x6
+                const rectangle = new PIXI.Graphics();
+                rectangle.beginFill(0x87ceeb); // Set the fill color (sky-blue)
+                rectangle.drawRect(blockSprite.x + this.randomInt(0, 42) - 2, blockSprite.y - 2,
+                    this.randomInt(5, 5), this.randomInt(5, 5)); // Draw a rectangle with the given width and height
+                rectangle.endFill();
+
+                // Add the circle to the buildingsContainer
+                this.damageContainer.addChild(rectangle);
+
+                // Store the circle in the circles array
+                this.damageRectangles.push(rectangle);
+            }
         }
     }
 }
