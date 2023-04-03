@@ -5,6 +5,7 @@ import BuildingExplosion from "./buildingExplosion.js";
 import Bomb from "./bomb.js";
 import levels from './levels.js';
 import ParticleExplosion from "./particleExplosion.js";
+import BonusMessage from "./bonusMessage.js";
 
 const groundHeight = 10;
 const buildingGap = 8;
@@ -25,9 +26,6 @@ const clouds = [];
 const cloudSpeed = 1;
 let initialDelay = 0;
 
-
-
-
 // Create a PixiJS Application
 const app = new PIXI.Application({
     width: 1000,
@@ -35,6 +33,8 @@ const app = new PIXI.Application({
     backgroundColor: 0x87CEEB, // Sky blue color
     resolution: window.devicePixelRatio || 1,
 });
+
+gsap.registerPlugin(PixiPlugin);
 
 handleInput()
 // Add after app created
@@ -60,6 +60,8 @@ app.stage.addChild(bombContainer);
 const aircraft = new Aircraft(app, currentScore, 1.5);
 app.stage.addChild(aircraft.getContainer());
 app.stage.addChild(aircraft.bombSightContainer);
+const bonusMessageContainer = new PIXI.Container();
+app.stage.addChild(bonusMessageContainer);
 app.ticker.add(gameLoop);
 
 // Define the game loop
@@ -127,35 +129,43 @@ function updateBombs() {
                     const center = buildingRect.x + (buildingRect.width / 2)
                     const difference = Math.abs(bombSpriteContainer.x - center);
 
-                    if (difference < 15) {
+                    if (difference < 22) {
+                        building.setRemovalAmount(1);
+                        currentScore.increment(1);
+                        console.log("< 21 diff - 2 blocks !")
+                    }
+
+                    if (difference < 16) {
                         building.setRemovalAmount(2);
-                        currentScore.add(1);
-                        console.log("< 15 diff - 2 blocks !")
+                        console.log("< 16 diff - 2 blocks !")
+                        currentScore.increment(2);
                     }
 
-                    if (difference < 10) {
+                    if (difference < 12) {
                         building.setRemovalAmount(4);
-                        console.log("< 10 diff - 4 blocks !")
-                        currentScore.add(2);
+                        console.log("< 12 diff - 4 blocks !")
+                        currentScore.increment(4);
                     }
 
-                    if (difference < 7) {
+                    if (difference < 8) {
                         building.setRemovalAmount(6);
-                        console.log("< 6 diff - 6 blocks !")
-                        currentScore.add(4);
+                        console.log("< 8 diff - 6 blocks !")
+                        currentScore.increment(6);
                     }
 
                     if (difference < 4) {
                         console.log("< 4 diff  bonus 8")
                         building.setRemovalAmount(8);
-                        currentScore.add(8);
+                        currentScore.increment(8);
                         directHitBonus++;
                         bonusPoints += 10;
                         if (directHitBonus > 2) {
                             const amount = directHitBonus * directHitBonus * 10;
-                            currentScore.add(amount);
+                            currentScore.increment(amount);
+                            bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, amount + "!!!" ))
                             //specialEffects.push(new Message("+" + amount + "!", center, building.topBlockY));
                         } else {
+                            bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, bonusPoints + "!" ))
                             //specialEffects.push(new Message("+10!", center, building.topBlockY));
                         }
                     } else {
@@ -164,7 +174,7 @@ function updateBombs() {
 
                     // hitBuildingTop = true;
                     createExplosion(bombSpriteContainer.x, bounds.y + 8, 1000, 100);
-                    createBuildingExplosion(bombSpriteContainer.x, bounds.y + 16, 2000, 100);
+                    createBuildingExplosion(bombSpriteContainer.x, bounds.y + 20, 2000, 100);
                     // specialEffects.push(new ParticleExplosion(bomb.x, building.topBlockY, 100, 50));
                     // building.startRemove();
                     // destroying.push(building);
