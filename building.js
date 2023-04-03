@@ -108,7 +108,7 @@ class Building {
         const blockSprite = this.container.children[this.container.children.length - 1];
 
         if (blockSprite) {
-            let damageCount = this.randomInt(20, 30);
+            let damageCount = this.randomInt(40, 50);
 
             for (let i = 0; i < damageCount; i++) {
                 // Create a sky-blue circle of size 6x6
@@ -125,7 +125,7 @@ class Building {
                 this.damageRectangles.push(rectangle);
             }
 
-            damageCount = this.randomInt(3, 7);
+            damageCount = this.randomInt(7, 10);
             for (let i = 0; i < damageCount; i++) {
                 // Create a sky-blue circle of size 6x6
                 const rectangle = new PIXI.Graphics();
