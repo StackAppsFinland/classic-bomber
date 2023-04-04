@@ -1,9 +1,11 @@
 import Score from './score.js';
+import Const from './constants.js';
+
 
 class Aircraft {
     constructor(app, currentScore, speed) {
         this.app = app;
-        this.mode = "flying";
+        this.mode = Const.READY;
         this.width = 62;
         this.imageHeight = 24;
         this.propWidth = 3;
@@ -12,7 +14,7 @@ class Aircraft {
         this.halfWidth = this.width / 2;
         this.flightLevel = 1;
         this.y = this.startingPositionY;
-        this.x = this.width * -1;
+        this.x = this.width * -2;
         this.speed = speed;
         this.planeImg = PIXI.Texture.from(`images/bomber.png`);
         this.propellerImgs = ['images/propeller1.png', 'images/propeller2.png', 'images/propeller3.png', 'images/propeller2.png'].map(src => {
@@ -30,16 +32,16 @@ class Aircraft {
         this.currentScore = currentScore;
         this.rotationSpeed = 5; // replace 5 with any value that works for your needs
         this.rotationTarget = 0;
+        this.lineGraphics = new PIXI.Graphics();
     }
 
     reset() {
-        this.mode = "flying"
+        this.mode = Const.READY;
         this.flightLevel = 1;
         this.calculatePlayYPos();
         this.levelFlight()
-        this.x = this.width * -1;
+        this.x = this.width * -2;
         this.speed = 4.0;
-        this.isCrashed = false;
     }
 
     getContainer() {
@@ -62,20 +64,19 @@ class Aircraft {
     }
 
     createDottedLine() {
-        const lineGraphics = new PIXI.Graphics();
         // Set the alpha value to 0.5
-        lineGraphics.lineStyle(2, 0xFFFFFF, 0.5, 0.5, true);
-        lineGraphics.moveTo(0, 0);
+        this.lineGraphics.lineStyle(2, 0xFFFFFF, 0.5, 0.5, true);
+        this.lineGraphics.moveTo(0, 0);
 
         const screenHeight = this.app.screen.height;
 
         for (let i = 0; i <screenHeight; i += 10) {
-            lineGraphics.lineTo(0, i);
+            this.lineGraphics.lineTo(0, i);
             i += 5;
-            lineGraphics.moveTo(0, i);
+            this.lineGraphics.moveTo(0, i);
         }
 
-        this.bombSightContainer.addChild(lineGraphics);
+        this.bombSightContainer.addChild(this.lineGraphics);
     }
 
     updatePosition() {
@@ -103,45 +104,6 @@ class Aircraft {
 
         this.container.addChildAt(prop, 1);
         this.container.removeChild(oldSprite);
-    }
-
-    draw() {
-        if (this.isCrashed) return;
-
-        const cx = this.x + this.halfWidth;
-        const cy = this.y + this.imageHeight / 2;
-
-        this.planeImg.x = -this.width / 2;
-        this.planeImg.y = -this.imageHeight / 2;
-        this.planeImg.width = this.width;
-        this.planeImg.height = this.imageHeight;
-        app.stage.addChild(this.planeImg);
-
-// Draw the propeller image, offset from the center of the plane image
-        const propellerSprite = this.propellerImgs[this.propellerIndex];
-        propellerSprite.x = this.width / 2;
-        propellerSprite.y = -this.imageHeight / 2;
-        propellerSprite.width = this.propWidth;
-        propellerSprite.height = this.imageHeight;
-        app.stage.addChild(propellerSprite);
-
-        if (!this.isCrashed) {
-            // Draw bomb sight fading as it moves down
-            const decreaseAlpha = this.currentScore.level * 15;
-            let alpha = (1.0 - (this.y / (500 - decreaseAlpha)))
-            if (alpha < 0.0) alpha = 0.0
-            this.ctx.strokeStyle = 'rgba(224,224,224,' + alpha + ')';
-            this.ctx.setLineDash([4, 1]);
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.x + this.halfWidth, this.y + 12);
-            this.ctx.lineTo(this.x + this.halfWidth, this.ctx.canvas.height - 10);
-            this.ctx.stroke();
-        }
-    }
-
-    crashed() {
-        this.isCrashed = true;
-        this.isPaused = true;
     }
 
     step() {
@@ -180,38 +142,46 @@ class Aircraft {
         this.mode = mode;
         console.log(mode)
         switch (mode) {
-            case 'flying':
+            case Const.FLYING:
+                this.container.visible = true;
+                this.bombSightContainer.visible = true;
                 this.levelFlight();
                 break;
-            case 'descending':
+            case Const.DESCENDING:
+                this.bombSightContainer.visible = false;
                 this.rotateClockwise();
                 break;
-            case 'flare':
+            case Const.FLARE:
                 this.rotateCounterClockwise();
                 break;
-            case 'landed':
+            case Const.LANDED:
                 this.speed = 0;
                 setTimeout(() => {
-                    this.setFlightMode("ready")
+                    this.setFlightMode(Const.READY)
                 }, 3000);
                 break;
-            case 'ready':
+            case Const.READY:
                 break;
+            case Const.RESTART:
+                break;
+            case Const.CRASHED:
+                this.container.visible = false;
+                this.bombSightContainer.visible = false;
             default:
-                console.log('Unknown flight mode error');
+                console.log('Unknown flight mode error: ' + this.mode);
         }
     }
 
     descend() {
-        this.setFlightMode("descending")
+        this.setFlightMode(Const.DESCENDING)
     }
 
     flare() {
-        this.setFlightMode("flare")
+        this.setFlightMode(Const.FLARE)
     }
 
     landed() {
-        this.setFlightMode("landed")
+        this.setFlightMode(Const.LANDED)
     }
 
     calculatePlayYPos() {
@@ -224,7 +194,7 @@ class Aircraft {
         }
 
         if (this.x > canvasWidth) {
-            if (this.mode === 'flying') {
+            if (this.mode === Const.FLYING) {
                 this.flightLevel++;
                 this.calculatePlayYPos();
             }

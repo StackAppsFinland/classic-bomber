@@ -7,9 +7,7 @@ class Score {
     }
 
     increment(amount) {
-        console.log("increment: " + amount)
         this.score += amount;
-
 
         if (this.score > this.highScore) {
             this.highScore = this.score;

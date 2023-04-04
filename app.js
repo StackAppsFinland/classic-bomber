@@ -6,10 +6,10 @@ import Bomb from "./bomb.js";
 import levels from './levels.js';
 import ParticleExplosion from "./particleExplosion.js";
 import BonusMessage from "./bonusMessage.js";
+import Const from "./constants.js";
 
 const groundHeight = 10;
 const buildingGap = 8;
-const buildingWidth = 40;
 const testModeActive = 4;
 const currentScore = new Score();
 let buildings = [];
@@ -17,11 +17,9 @@ let currentBuilding = 0;
 let buildingCount = 0;
 let allowedNumberOfBombs = 1;
 let specialEffects = [];
-let destroying = [];
 let directHitBonus = 0;
 let bonusPoints = 0;
 let testModeCounter = 4;
-let bombDropStartTime = 0;
 const clouds = [];
 const cloudSpeed = 1;
 let initialDelay = 0;
@@ -40,7 +38,8 @@ handleInput()
 // Add after app created
 const canvasWidth = app.screen.width;
 const canvasHeight = app.screen.height;
-const scoreDisplay = drawScoreDisplay();
+drawScoreText();
+const scoreDisplay = drawScores();
 
 // Add the application view to the HTML body
 document.body.appendChild(app.view);
@@ -50,6 +49,7 @@ const buildingsContainer = new PIXI.Container();
 app.stage.addChild(buildingsContainer);
 const buildingDamageContainer = new PIXI.Container();
 app.stage.addChild(buildingDamageContainer);
+const aircraft = new Aircraft(app, currentScore, 1.5);
 
 createBuildings()
 
@@ -57,19 +57,21 @@ createBuildings()
 const bombContainer = new PIXI.Container();
 app.stage.addChild(bombContainer);
 
-const aircraft = new Aircraft(app, currentScore, 1.5);
+
 app.stage.addChild(aircraft.getContainer());
 app.stage.addChild(aircraft.bombSightContainer);
 const bonusMessageContainer = new PIXI.Container();
 app.stage.addChild(bonusMessageContainer);
+const retryContainer = createRetryContainer();
+app.stage.addChild(retryContainer);
+
 app.ticker.add(gameLoop);
 
 // Define the game loop
 function gameLoop(delta) {
     updateScoreDisplay();
-
     revealBuildings();
-    aircraft.updatePosition();
+    updateAircraft();
     updateBombs();
     updateBuildingDamage();
     updateSpecialEffects();
@@ -88,12 +90,14 @@ function updateSpecialEffects() {
 }
 
 function dropBomb() {
-    const bombX = aircraft.container.x + aircraft.halfWidth;
-    const bombY = aircraft.container.y + 10;
-    const bomb = new Bomb(bombX - 4, bombY, 4);
-    const bombSpriteContainer = bomb.getContainer();
-    bombSpriteContainer.bombInstance = bomb;
-    bombContainer.addChild(bombSpriteContainer);
+    if (aircraft.mode === Const.FLYING) {
+        const bombX = aircraft.container.x + aircraft.halfWidth;
+        const bombY = aircraft.container.y + 10;
+        const bomb = new Bomb(bombX - 4, bombY, 4);
+        const bombSpriteContainer = bomb.getContainer();
+        bombSpriteContainer.bombInstance = bomb;
+        bombContainer.addChild(bombSpriteContainer);
+    }
 }
 
 function updateBuildingDamage() {
@@ -111,6 +115,9 @@ function updateBombs() {
 
         if (bombSpriteContainer.y > canvasHeight) {
             bombContainer.removeChild(bombSpriteContainer);
+            createExplosion(bombSpriteContainer.x, bombSpriteContainer.y - 10, 500, 40);
+            bonusPoints = 0;
+            directHitBonus = 0;
         } else {
             for (let j = 0; j < buildingsContainer.children.length; j++) {
                 const buildingRect = buildingsContainer.children[j].getBounds()
@@ -132,29 +139,24 @@ function updateBombs() {
                     if (difference < 22) {
                         building.setRemovalAmount(1);
                         currentScore.increment(1);
-                        console.log("< 21 diff - 2 blocks !")
                     }
 
                     if (difference < 16) {
                         building.setRemovalAmount(2);
-                        console.log("< 16 diff - 2 blocks !")
                         currentScore.increment(2);
                     }
 
                     if (difference < 12) {
                         building.setRemovalAmount(4);
-                        console.log("< 12 diff - 4 blocks !")
                         currentScore.increment(4);
                     }
 
                     if (difference < 8) {
                         building.setRemovalAmount(6);
-                        console.log("< 8 diff - 6 blocks !")
                         currentScore.increment(6);
                     }
 
-                    if (difference < 4) {
-                        console.log("< 4 diff  bonus 8")
+                    if (difference < 5) {
                         building.setRemovalAmount(8);
                         currentScore.increment(8);
                         directHitBonus++;
@@ -162,28 +164,46 @@ function updateBombs() {
                         if (directHitBonus > 2) {
                             const amount = directHitBonus * directHitBonus * 10;
                             currentScore.increment(amount);
-                            bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, amount + "!!!" ))
-                            //specialEffects.push(new Message("+" + amount + "!", center, building.topBlockY));
+                            bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, amount + "!!" ))
+                            if (directHitBonus == 3) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "AWESOME!" ))
+                            if (directHitBonus == 4) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "ACCURACY!" ))
+                            if (directHitBonus == 5) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "AMAZING!" ))
+                            if (directHitBonus == 6) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "PHENOMENAL!" ))
+                            if (directHitBonus == 7) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "SUPREME!" ))
+                            if (directHitBonus > 7) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "GODLY!" ))
                         } else {
                             bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, bonusPoints + "!" ))
-                            //specialEffects.push(new Message("+10!", center, building.topBlockY));
                         }
                     } else {
+                        bonusPoints = 0;
                         directHitBonus = 0;
                     }
 
-                    // hitBuildingTop = true;
                     createExplosion(bombSpriteContainer.x, bounds.y + 8, 1000, 100);
                     createBuildingExplosion(bombSpriteContainer.x, bounds.y + 20, 2000, 100);
-                    // specialEffects.push(new ParticleExplosion(bomb.x, building.topBlockY, 100, 50));
-                    // building.startRemove();
-                    // destroying.push(building);
                     break;
                 }
-
-
-                // buildingSprite.removeChildAt(buildingSprite.children.length - 1);
             }
+        }
+    }
+}
+
+function updateAircraft() {
+    if (aircraft.mode !== Const.FLYING) return;
+
+    aircraft.updatePosition();
+
+    for (let j = 0; j < buildingsContainer.children.length; j++) {
+        const buildingRect = buildingsContainer.children[j].getBounds()
+        buildingRect.width = buildingRect.width - 6;
+        buildingRect.x = buildingRect.x + 3;
+
+        if (aircraft.container.getBounds().intersects(buildingRect)) {
+            aircraft.setFlightMode(Const.CRASHED);
+            createExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 1500, 200);
+            createBuildingExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 2500, 80);
+            buildingsContainer.children[j].buildingInstance.setRemovalAmount(2);
+            showCrashedPanel();
         }
     }
 }
@@ -216,15 +236,15 @@ function handleInput() {
             testModeCounter = 0;
 
         if (event.code === 'Space') {
-            dropBomb();
+                dropBomb();
         }
 
-        if (event.code === 'Enter' && aircraft.mode !== 'flying') {
+        if (event.code === 'Enter' && aircraft.mode == Const.NEXT) {
             currentScore.level = currentScore.level + 1;
             createBuildings();
         }
 
-        if (event.code === 'KeyR' && aircraft.isCrashed) {
+        if (event.code === 'KeyR' && aircraft.mode == Const.RESTART) {
             createBuildings();
         }
 
@@ -296,38 +316,135 @@ function revealBuildings() {
 
         if (unrevealedBuilding) {
             unrevealedBuilding.reveal(16);
+        } else {
+            if (aircraft.mode == Const.READY) {
+                aircraft.setFlightMode(Const.FLYING);
+            }
         }
     }
 }
 
-function drawScoreDisplay() {
+function drawScoreText() {
     const scoreStyle = new PIXI.TextStyle({
-        fontFamily: 'Arial',
+        fontFamily: 'space-font',
         fontSize: 20,
-        fill: 'black',
+        fill: 'DimGrey',
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowDistance: 1.5,
     });
 
-    const scoreText = new PIXI.Text("SCORE: " + currentScore.score, scoreStyle);
+    const scoreText = new PIXI.Text("SCORE:", scoreStyle);
     scoreText.x = 10;
     scoreText.y = 4;
 
-    const levelText = new PIXI.Text("LEVEL: " + currentScore.level, scoreStyle);
+    const levelText = new PIXI.Text("LEVEL:", scoreStyle);
     levelText.x = 350;
     levelText.y = 4;
 
-    const highScoreText = new PIXI.Text("HIGH SCORE: " + currentScore.highScore, scoreStyle);
-    highScoreText.x = 750;
+    const highScoreText = new PIXI.Text("HIGH SCORE:", scoreStyle);
+    highScoreText.x = 770;
     highScoreText.y = 4;
 
     app.stage.addChild(scoreText, levelText, highScoreText);
-    return { scoreText, levelText, highScoreText };
+}
+
+function drawScores() {
+    const scoreStyle = new PIXI.TextStyle({
+        fontFamily: 'space-font',
+        fontSize: 20,
+        fill: 0x0818A8,
+        dropShadow: true,
+        dropShadowColor: 0xeeeeee,
+        dropShadowDistance: 1,
+    });
+
+    const scoreValue = new PIXI.Text("" + currentScore.score, scoreStyle);
+    scoreValue.x = 86;
+    scoreValue.y = 4;
+
+    const levelValue = new PIXI.Text("" + currentScore.level, scoreStyle);
+    levelValue.x = 422;
+    levelValue.y = 4;
+
+    const highScoreValue = new PIXI.Text("" + currentScore.highScore, scoreStyle);
+    highScoreValue.x = 893;
+    highScoreValue.y = 4;
+
+    app.stage.addChild(scoreValue, levelValue, highScoreValue);
+    return { scoreValue, levelValue, highScoreValue };
 }
 
 function updateScoreDisplay() {
-    scoreDisplay.scoreText.text = "SCORE: " + currentScore.score;
-    scoreDisplay.levelText.text = "LEVEL: " + currentScore.level;
-    scoreDisplay.highScoreText.text = "HIGH SCORE: " + currentScore.highScore;
+    scoreDisplay.scoreValue.text = "" + currentScore.score;
+    scoreDisplay.levelValue.text = "" + currentScore.level;
+    scoreDisplay.highScoreValue.text = "" + currentScore.highScore;
 }
+
+function showCrashedPanel() {
+    // Set the initial alpha of the retryContainer to 0 (invisible)
+    retryContainer.alpha = 0;
+
+    // Fade in the retryContainer using GSAP with a 3-second delay
+    gsap.to(retryContainer, {
+        alpha: 1, // Target alpha value
+        duration: 0.5, // Animation duration in seconds
+        delay: 1.5, // Delay before starting the animation in seconds
+        onComplete: onFadeInComplete, // Function to call when the animation is completed
+    });
+}
+
+function onFadeInComplete() {
+    aircraft.setFlightMode(Const.RESTART)
+}
+
+function createRetryContainer() {
+    const retryContainer = new PIXI.Container();
+    retryContainer.alpha = 0;
+
+    // Create a semi-transparent rounded rectangle
+    const rectWidth = 500;
+    const rectHeight = 300;
+    const rectX = (canvasWidth - rectWidth) / 2;
+    const rectY = (canvasHeight - rectHeight) / 2;
+
+// Create a semi-transparent rounded rectangle in the middle of the screen
+    const rectangle = new PIXI.Graphics();
+    rectangle.beginFill(0x000000, 0.80); // Set fill color and alpha for transparency
+    rectangle.drawRoundedRect(rectX, rectY, rectWidth, rectHeight, 10); // Draw a 400x300 rounded rectangle
+    rectangle.endFill();
+    retryContainer.addChild(rectangle);
+
+    // Create the "You Crashed!" text
+    const crashStyle = new PIXI.TextStyle({
+        fontFamily: 'space-font',
+        fontSize: 50,
+        fill: 'red',
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowDistance: 3,
+    });
+    const crashText = new PIXI.Text('YOU CRASHED!', crashStyle);
+    crashText.anchor.set(0.5);
+    crashText.x = app.screen.width / 2;
+    crashText.y = 250;
+    retryContainer.addChild(crashText);
+
+    // Create the "Click 'Enter' to try again" text
+    const tryAgainStyle = new PIXI.TextStyle({
+        fontFamily: 'space-font',
+        fontSize: 30,
+        fill: 'white',
+    });
+    const tryAgainText = new PIXI.Text('Click "Enter" to try again', tryAgainStyle);
+    tryAgainText.anchor.set(0.5);
+    tryAgainText.x = app.screen.width / 2;
+    tryAgainText.y = 370;
+    retryContainer.addChild(tryAgainText);
+
+    return retryContainer;
+}
+
 
 function drawDashedLine(graphics, startX, startY, endX, endY, dashLength, color, alpha) {
     const deltaX = endX - startX;
@@ -363,7 +480,7 @@ function drawStaticParts() {
    for (let y = canvasHeight - groundHeight; y >= 0; y -= 16) {
        drawDashedLine(groundGraphics, 0, y, canvasWidth, y, 2, 0x800080, 0.25)
         // Display the y value just under the purple line on the left
-        const yText = new PIXI.Text(Math.round(y), { fontFamily: 'Arial', fontSize: 12, fill: 'black' });
+        const yText = new PIXI.Text(Math.round(y), { fontFamily: 'space-font', fontSize: 12, fill: 'black' });
         yText.alpha = 0.5;
         yText.x = 0;
         yText.y = y + 12;
@@ -382,10 +499,6 @@ function createBuildings() {
     }
 
     buildingsContainer.removeChildren();
-    //aircraft.reset();
-    //aircraft.isCrashed = false
-
-    //if (testModeCounter < 4) aircraft.x = -500;
 
     buildings = [];
     currentBuilding = 0;
@@ -399,7 +512,7 @@ function createBuildings() {
     buildingCount = gameLevel.buildingCount;
 
     // Place buildings in the centre outwards
-    const totalWidth = buildingCount * buildingWidth + (buildingCount - 1) * buildingGap;
+    const totalWidth = buildingCount * Const.BUILDING_WIDTH + (buildingCount - 1) * buildingGap;
     const startX = (canvasWidth - totalWidth) / 2;
 
     for (let i = 0; i < buildingCount; i++) {
@@ -418,7 +531,7 @@ function createBuildings() {
             }
         }
 
-        const x = startX + i * (buildingWidth + buildingGap);
+        const x = startX + i * (Const.BUILDING_WIDTH + buildingGap);
         let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
         const building = new Building(x, canvasHeight - groundHeight, blocks)
         const buildingSpriteContainer = building.getBuildingContainer();
@@ -427,6 +540,8 @@ function createBuildings() {
         buildingDamageContainer.addChild(building.damageContainer);
         buildings.push(building);
     }
+
+    if (aircraft) aircraft.reset();
 }
 
 function log(message) {

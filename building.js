@@ -1,7 +1,5 @@
 import BuildingExplosion from "./buildingExplosion.js";
-
-const buildingWidth = 40;
-const blockHeight = 16;
+import Const from "./constants.js"
 
 class Building {
     constructor(x, y, blocks) {
@@ -23,7 +21,7 @@ class Building {
 
     getBuildingContainer() {
         for (let i = 0; i < this.blocks; i++) {
-            const posY = this.y - (i + 1) * blockHeight;
+            const posY = this.y - (i + 1) * Const.BLOCK_HEIGHT;
 
             let blockTexture;
             if (i === 0) {
@@ -37,8 +35,8 @@ class Building {
             const blockSprite = new PIXI.Sprite(blockTexture);
             blockSprite.x = this.x;
             blockSprite.y = posY;
-            blockSprite.width = buildingWidth;
-            blockSprite.height = blockHeight;
+            blockSprite.width = Const.BUILDING_WIDTH;
+            blockSprite.height = Const.BLOCK_HEIGHT;
             this.container.addChild(blockSprite);
             this.topBlockY = posY;
         }
@@ -48,7 +46,7 @@ class Building {
 
         // Draw a rectangle for the mask, covering the entire building container
         mask.beginFill(0xffffff);
-        mask.drawRect(this.x, this.y, buildingWidth, this.y);
+        mask.drawRect(this.x, this.y, Const.BUILDING_WIDTH, this.y);
         mask.endFill();
 
         // Set the mask for the building container
@@ -67,7 +65,7 @@ class Building {
         }
 
         mask.beginFill(0xffffff);
-        mask.drawRect(this.x, this.revealY, buildingWidth, this.y);
+        mask.drawRect(this.x, this.revealY, Const.BUILDING_WIDTH, this.y);
         mask.endFill();
     }
 
@@ -84,7 +82,8 @@ class Building {
                 const blockSprite = this.container.children[this.container.children.length - 1];
                 this.container.removeChild(blockSprite);
 
-                const explosion = new BuildingExplosion(blockSprite.x + 2 + Math.random() * 38, blockSprite.y + blockHeight, 2300, 50);
+                const explosion = new BuildingExplosion(blockSprite.x + Math.random() * Const.BUILDING_WIDTH,
+                    blockSprite.y + Const.BLOCK_HEIGHT, 2300, 50);
                 stage.addChild(explosion.container);
                 specialEffects.push(explosion);
                 this.removalAmount--;

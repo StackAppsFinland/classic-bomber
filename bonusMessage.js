@@ -7,12 +7,12 @@ class BonusMessage extends PIXI.Container {
 
         this.message = message;
         this.textObject = new PIXI.Text(message, {
-            fontFamily: 'Arial',
+            fontFamily: 'space-font',
             fontSize: 1,
             fill: 0xff0000,
             dropShadow: true,
             dropShadowColor: 0x000000,
-            dropShadowDistance: 1,
+            dropShadowDistance: 3,
         });
 
         // Set the anchor to the center of the text object
@@ -23,7 +23,7 @@ class BonusMessage extends PIXI.Container {
     }
 
     animateText() {
-        const fontSizeIncrease = 30;
+        const fontSizeIncrease = 25;
         const riseDistance = -20;
         const riseDuration = 1 / 3; // In seconds
         const flashDuration = 1.5; // In seconds
