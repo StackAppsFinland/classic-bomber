@@ -50,6 +50,7 @@ app.stage.addChild(buildingsContainer);
 const buildingDamageContainer = new PIXI.Container();
 app.stage.addChild(buildingDamageContainer);
 const aircraft = new Aircraft(app, currentScore, 1.5);
+const retryContainer = createRetryContainer();
 
 createBuildings()
 
@@ -62,7 +63,6 @@ app.stage.addChild(aircraft.getContainer());
 app.stage.addChild(aircraft.bombSightContainer);
 const bonusMessageContainer = new PIXI.Container();
 app.stage.addChild(bonusMessageContainer);
-const retryContainer = createRetryContainer();
 app.stage.addChild(retryContainer);
 
 app.ticker.add(gameLoop);
@@ -394,6 +394,15 @@ function showCrashedPanel() {
     });
 }
 
+function hideCrashedPanel() {
+    // Fade out the retryContainer using GSAP with a 1-second delay
+    gsap.to(retryContainer, {
+        alpha: 0, // Target alpha value
+        duration: 1.0, // Animation duration in seconds
+        delay: 0.5 // Delay before starting the animation in seconds
+    });
+}
+
 function onFadeInComplete() {
     aircraft.setFlightMode(Const.RESTART)
 }
@@ -436,7 +445,7 @@ function createRetryContainer() {
         fontSize: 30,
         fill: 'white',
     });
-    const tryAgainText = new PIXI.Text('Click "Enter" to try again', tryAgainStyle);
+    const tryAgainText = new PIXI.Text('Click "R" to try again', tryAgainStyle);
     tryAgainText.anchor.set(0.5);
     tryAgainText.x = app.screen.width / 2;
     tryAgainText.y = 370;
@@ -498,7 +507,9 @@ function createBuildings() {
         child.destroy();
     }
 
+    hideCrashedPanel();
     buildingsContainer.removeChildren();
+    buildingDamageContainer.removeChildren()
 
     buildings = [];
     currentBuilding = 0;
