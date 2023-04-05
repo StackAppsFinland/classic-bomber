@@ -11,10 +11,10 @@ const levels = [
     new GameLevel(8, "normal",20, 2, 20),
     new GameLevel(9, "normal",20, 2, 24),
     new GameLevel(10, "normal",20, 7, 25),
-    new GameLevel(11, "alt", 20, 20, 33),
-    new GameLevel(12, "normal",20, 2, 33),
-    new GameLevel(13, "normal",20, 8, 33),
-    new GameLevel(14, "normal",20, 10, 33, 2),
+    new GameLevel(11, "alt", 20, 8, 31),
+    new GameLevel(12, "normal",20, 13, 33),
+    new GameLevel(13, "normal",20, 15, 33),
+    new GameLevel(14, "normal",20, 20, 33, 2),
     new GameLevel(15, "alt", 20, 33, 33, 2),
 ];
 

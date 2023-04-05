@@ -6,7 +6,7 @@ class BuildingExplosion {
         this.y = y;
         this.duration = duration;
         this.numParticles = numParticles;
-        this.container = new PIXI.Container(); // Use a regular Container
+        this.container = new PIXI.Container();
         this.isFinished = false;
         this.createParticles();
     }

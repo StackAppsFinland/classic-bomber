@@ -11,7 +11,7 @@ class ParticleExplosion {
 
     createParticles() {
         for (let i = 0; i < this.numParticles; i++) {
-            const size = Math.floor(Math.random() * 4) + 2;
+            const size = Math.floor(Math.random() * 2) + 2;
 
             const randomColor = () => {
                 const random = Math.random();

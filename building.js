@@ -14,6 +14,7 @@ class Building {
         this.isRevealed = false;
         this.revealY = this.y;
         this.removalAmount = 0;
+        this.noteIndex = 0;
         this.lastMillis = 0;
         this.topBlockY = 0;
         this.damageRectangles = []
@@ -41,15 +42,10 @@ class Building {
             this.topBlockY = posY;
         }
 
-        // Create a PIXI.Graphics object for the mask
         const mask = new PIXI.Graphics();
-
-        // Draw a rectangle for the mask, covering the entire building container
         mask.beginFill(0xffffff);
         mask.drawRect(this.x, this.y, Const.BUILDING_WIDTH, this.y);
         mask.endFill();
-
-        // Set the mask for the building container
         this.container.mask = mask;
 
         return this.container;
@@ -74,14 +70,17 @@ class Building {
 
     setRemovalAmount(amount) {
         this.removalAmount = amount;
+        this.noteIndex = 0;
     }
 
-    removalBlock(stage, specialEffects) {
+    removalBlock(notes, stage, specialEffects) {
+        console.log("hiow  many")
         const currentMillis = Date.now();
 
         if (currentMillis > this.lastMillis) {
-            this.lastMillis = currentMillis + 100;
+            this.lastMillis = currentMillis + 170;
             if (this.removalAmount > 0 && this.container.children.length > 0) {
+                notes[this.noteIndex++].play('short');
                 const blockSprite = this.container.children[this.container.children.length - 1];
                 this.container.removeChild(blockSprite);
 
@@ -113,33 +112,23 @@ class Building {
             let damageCount = this.randomInt(40, 50);
 
             for (let i = 0; i < damageCount; i++) {
-                // Create a sky-blue circle of size 6x6
                 const rectangle = new PIXI.Graphics();
-                rectangle.beginFill(0x87ceeb); // Set the fill color (sky-blue)
+                rectangle.beginFill(0x87ceeb);
                 rectangle.drawRect(blockSprite.x + this.randomInt(0, 42) - 2, blockSprite.y + this.randomInt(-3, 15),
-                    this.randomInt(1, 4), this.randomInt(1, 4)); // Draw a rectangle with the given width and height
+                    this.randomInt(1, 4), this.randomInt(1, 4));
                 rectangle.endFill();
-
-                // Add the circle to the buildingsContainer
                 this.damageContainer.addChild(rectangle);
-
-                // Store the circle in the circles array
                 this.damageRectangles.push(rectangle);
             }
 
             damageCount = this.randomInt(7, 10);
             for (let i = 0; i < damageCount; i++) {
-                // Create a sky-blue circle of size 6x6
                 const rectangle = new PIXI.Graphics();
-                rectangle.beginFill(0x87ceeb); // Set the fill color (sky-blue)
+                rectangle.beginFill(0x87ceeb);
                 rectangle.drawRect(blockSprite.x + this.randomInt(0, 42) - 2, blockSprite.y - 2,
-                    this.randomInt(5, 5), this.randomInt(5, 5)); // Draw a rectangle with the given width and height
+                    this.randomInt(5, 5), this.randomInt(5, 5));
                 rectangle.endFill();
-
-                // Add the circle to the buildingsContainer
                 this.damageContainer.addChild(rectangle);
-
-                // Store the circle in the circles array
                 this.damageRectangles.push(rectangle);
             }
         }
