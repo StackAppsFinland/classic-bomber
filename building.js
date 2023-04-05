@@ -42,29 +42,29 @@ class Building {
         }
 
         // Create a PIXI.Graphics object for the mask
-       // const mask = new PIXI.Graphics();
+        const mask = new PIXI.Graphics();
 
         // Draw a rectangle for the mask, covering the entire building container
-      //  mask.beginFill(0xffffff);
-      //  mask.drawRect(this.x, this.y, Const.BUILDING_WIDTH, this.y);
-     //   mask.endFill();
+        mask.beginFill(0xffffff);
+        mask.drawRect(this.x, this.y, Const.BUILDING_WIDTH, this.y);
+        mask.endFill();
 
         // Set the mask for the building container
-      //  this.container.mask = mask;
+        this.container.mask = mask;
 
         return this.container;
     }
 
     reveal(speed) {
-        this.isRevealed = true;
-        return;
-
         const mask = this.container.mask;
 
         this.revealY = this.revealY - speed;
         if (this.revealY < this.topBlockY) {
             this.revealY = this.topBlockY;
+            this.container.mask = null;
+            mask.destroy();
             this.isRevealed = true;
+            return;
         }
 
         mask.beginFill(0xffffff);
