@@ -1,4 +1,3 @@
-import Score from './score.js';
 import Const from './constants.js';
 
 
@@ -16,6 +15,7 @@ class Aircraft {
         this.y = this.startingPositionY;
         this.x = this.width * -2;
         this.speed = speed;
+        this.originalSpeed = speed;
         this.planeImg = PIXI.Texture.from(`images/bomber.png`);
         this.propellerImgs = ['images/propeller1.png', 'images/propeller2.png', 'images/propeller3.png', 'images/propeller2.png'].map(src => {
             const img = PIXI.Texture.from(src);
@@ -27,7 +27,6 @@ class Aircraft {
         this.propellerIndex = 0;
         this.propellerChange = 0;
         this.isPaused = false;
-        this.isCrashed = false;
         this.rotationAngle = 0; // initial rotation angle is 0 degrees
         this.currentScore = currentScore;
         this.rotationSpeed = 5; // replace 5 with any value that works for your needs
@@ -41,7 +40,7 @@ class Aircraft {
         this.calculatePlayYPos();
         this.levelFlight()
         this.x = this.width * -2;
-        this.speed = 4.0;
+        this.speed = this.originalSpeed;
     }
 
     getContainer() {
@@ -65,7 +64,7 @@ class Aircraft {
 
     createDottedLine() {
         // Set the alpha value to 0.5
-        this.lineGraphics.lineStyle(2, 0xFFFFFF, 0.5, 0.5, true);
+        this.lineGraphics.lineStyle(2, 0xFFFFFF, 0.9, 0.5, true);
         this.lineGraphics.moveTo(0, 0);
 
         const screenHeight = this.app.screen.height;
@@ -82,9 +81,11 @@ class Aircraft {
     updatePosition() {
         this.x = this.x + this.speed;
         if (this.x - this.width > this.app.screen.width) {
+            if (this.mode === Const.FLYING) {
+                this.flightLevel++;
+                this.calculatePlayYPos()
+            }
             this.x = -this.width;
-            this.flightLevel++;
-            this.calculatePlayYPos()
         }
 
         this.container.x = this.x;
@@ -140,7 +141,6 @@ class Aircraft {
         if (mode === this.mode) return;
 
         this.mode = mode;
-        console.log(mode)
         switch (mode) {
             case Const.FLYING:
                 this.container.visible = true;
@@ -156,9 +156,6 @@ class Aircraft {
                 break;
             case Const.LANDED:
                 this.speed = 0;
-                setTimeout(() => {
-                    this.setFlightMode(Const.READY)
-                }, 3000);
                 break;
             case Const.READY:
                 break;
@@ -167,6 +164,7 @@ class Aircraft {
             case Const.CRASHED:
                 this.container.visible = false;
                 this.bombSightContainer.visible = false;
+                break;
             default:
                 console.log('Unknown flight mode error: ' + this.mode);
         }
@@ -238,6 +236,9 @@ class Aircraft {
         } else {
             this.rotationAngle = this.rotationTarget;
         }
+
+        // Apply the rotation to the container
+        this.container.rotation = this.rotationAngle * (Math.PI / 180);
     }
 }
 

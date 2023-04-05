@@ -23,6 +23,7 @@ let testModeCounter = 4;
 const clouds = [];
 const cloudSpeed = 1;
 let initialDelay = 0;
+let aircraftSpeed = 1.35;
 
 // Create a PixiJS Application
 const app = new PIXI.Application({
@@ -40,6 +41,8 @@ const canvasWidth = app.screen.width;
 const canvasHeight = app.screen.height;
 drawScoreText();
 const scoreDisplay = drawScores();
+const bombsAvailableContainer = createBombsAvailable()
+app.stage.addChild(bombsAvailableContainer);
 
 // Add the application view to the HTML body
 document.body.appendChild(app.view);
@@ -49,14 +52,13 @@ const buildingsContainer = new PIXI.Container();
 app.stage.addChild(buildingsContainer);
 const buildingDamageContainer = new PIXI.Container();
 app.stage.addChild(buildingDamageContainer);
-const aircraft = new Aircraft(app, currentScore, 1.5);
+const aircraft = new Aircraft(app, currentScore, aircraftSpeed);
 const retryContainer = createRetryContainer();
-
-createBuildings()
-
-// add bombs before aircraft for them to appear behind
+const nextLevelContainer = createNextLevelContainer();
 const bombContainer = new PIXI.Container();
 app.stage.addChild(bombContainer);
+
+createBuildings()
 
 
 app.stage.addChild(aircraft.getContainer());
@@ -64,11 +66,12 @@ app.stage.addChild(aircraft.bombSightContainer);
 const bonusMessageContainer = new PIXI.Container();
 app.stage.addChild(bonusMessageContainer);
 app.stage.addChild(retryContainer);
+app.stage.addChild(nextLevelContainer);
 
 app.ticker.add(gameLoop);
 
 // Define the game loop
-function gameLoop(delta) {
+function gameLoop() {
     updateScoreDisplay();
     revealBuildings();
     updateAircraft();
@@ -91,12 +94,30 @@ function updateSpecialEffects() {
 
 function dropBomb() {
     if (aircraft.mode === Const.FLYING) {
+        if (bombContainer.children.length >= allowedNumberOfBombs) {
+            return;
+        }
+
         const bombX = aircraft.container.x + aircraft.halfWidth;
         const bombY = aircraft.container.y + 10;
-        const bomb = new Bomb(bombX - 4, bombY, 4);
+        const bomb = new Bomb(bombX - 4, bombY, aircraftSpeed * 2);
         const bombSpriteContainer = bomb.getContainer();
         bombSpriteContainer.bombInstance = bomb;
         bombContainer.addChild(bombSpriteContainer);
+
+        updateBombsAvailable();
+    }
+}
+
+function updateBombsAvailable() {
+    const numChildren = bombsAvailableContainer.children.length;
+
+    for (let i = 0; i < numChildren; i++) {
+        bombsAvailableContainer.children[i].visible = i < allowedNumberOfBombs;
+    }
+
+    for (let i = 0; i < bombContainer.children.length; i++) {
+        bombsAvailableContainer.children[i].visible = false;
     }
 }
 
@@ -115,6 +136,7 @@ function updateBombs() {
 
         if (bombSpriteContainer.y > canvasHeight) {
             bombContainer.removeChild(bombSpriteContainer);
+            updateBombsAvailable()
             createExplosion(bombSpriteContainer.x, bombSpriteContainer.y - 10, 500, 40);
             bonusPoints = 0;
             directHitBonus = 0;
@@ -130,6 +152,7 @@ function updateBombs() {
                     const bounds = buildingSpriteContainer.getBounds();
 
                     bombContainer.removeChild(bombSpriteContainer);
+                    updateBombsAvailable()
                     building.setRemovalAmount(2);
 
                     // calculate distance from center of building.
@@ -147,29 +170,29 @@ function updateBombs() {
                     }
 
                     if (difference < 12) {
+                        building.setRemovalAmount(3);
+                        currentScore.increment(3);
+                    }
+
+                    if (difference < 8) {
                         building.setRemovalAmount(4);
                         currentScore.increment(4);
                     }
 
-                    if (difference < 8) {
+                    if (difference < 5) {
                         building.setRemovalAmount(6);
                         currentScore.increment(6);
-                    }
-
-                    if (difference < 5) {
-                        building.setRemovalAmount(8);
-                        currentScore.increment(8);
                         directHitBonus++;
                         bonusPoints += 10;
                         if (directHitBonus > 2) {
                             const amount = directHitBonus * directHitBonus * 10;
                             currentScore.increment(amount);
                             bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, amount + "!!" ))
-                            if (directHitBonus == 3) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "AWESOME!" ))
-                            if (directHitBonus == 4) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "ACCURACY!" ))
-                            if (directHitBonus == 5) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "AMAZING!" ))
-                            if (directHitBonus == 6) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "PHENOMENAL!" ))
-                            if (directHitBonus == 7) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "SUPREME!" ))
+                            if (directHitBonus === 3) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "AWESOME!" ))
+                            if (directHitBonus === 4) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "ACCURACY!" ))
+                            if (directHitBonus === 5) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "AMAZING!" ))
+                            if (directHitBonus === 6) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "PHENOMENAL!" ))
+                            if (directHitBonus === 7) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "SUPREME!" ))
                             if (directHitBonus > 7) bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y + 30, "GODLY!" ))
                         } else {
                             bonusMessageContainer.addChild(new BonusMessage(bombSpriteContainer.x, bounds.y, bonusPoints + "!" ))
@@ -189,11 +212,26 @@ function updateBombs() {
 }
 
 function updateAircraft() {
-    if (aircraft.mode !== Const.FLYING) return;
+    if (!(aircraft.mode === Const.FLYING ||
+        aircraft.mode === Const.DESCENDING ||
+        aircraft.mode === Const.FLARE ||
+        aircraft.mode === Const.LANDED)) return;
 
     aircraft.updatePosition();
 
+    if (aircraft.mode === Const.DESCENDING || aircraft.mode === Const.FLARE) {
+        landAircraft()
+        return
+    }
+
+    let isEmptyCount = 0;
+
     for (let j = 0; j < buildingsContainer.children.length; j++) {
+        if (buildingsContainer.children[j].children.length === 0) {
+            isEmptyCount++;
+            continue;
+        }
+
         const buildingRect = buildingsContainer.children[j].getBounds()
         buildingRect.width = buildingRect.width - 6;
         buildingRect.x = buildingRect.x + 3;
@@ -204,6 +242,13 @@ function updateAircraft() {
             createBuildingExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 2500, 80);
             buildingsContainer.children[j].buildingInstance.setRemovalAmount(2);
             showCrashedPanel();
+        }
+    }
+
+    if (isEmptyCount === buildingsContainer.children.length) {
+        if (aircraft.mode === Const.FLYING) {
+            aircraft.setFlightMode(Const.DESCENDING);
+            showNextLevelPanel();
         }
     }
 }
@@ -218,6 +263,43 @@ function createExplosion(x, y, duration, numberOfParticles) {
     const explosion = new ParticleExplosion(x, y, duration, numberOfParticles);
     app.stage.addChild(explosion.container);
     specialEffects.push(explosion);
+}
+
+function landAircraft() {
+    if (aircraft.mode === Const.DESCENDING) {
+
+        if (aircraft.y < 501) {
+            aircraft.y = aircraft.y + aircraft.speed / 2.5;
+        }
+        if (aircraft.y > 500 && aircraft.y < 531) {
+            aircraft.y = aircraft.y + aircraft.speed / 3.0;
+        }
+        if (aircraft.y > 530) {
+            aircraft.y = aircraft.y + aircraft.speed / 3.5;
+            aircraft.flare();
+        }
+    }
+
+    if (aircraft.mode === Const.FLARE) {
+        aircraft.y = aircraft.y + aircraft.speed / 4.0;
+        if (aircraft.y + aircraft.imageHeight > canvasHeight +2) {
+            aircraft.y = canvasHeight - aircraft.imageHeight +2;
+
+            if (aircraft.x >  780 && aircraft.x < 921) {
+                aircraft.speed = aircraft.speed - 0.01
+                if (aircraft.speed <= 0) {
+                    aircraft.speed = 0;
+                    aircraft.landed();
+                    return;
+                }
+            }
+
+            if (aircraft.x > 920 && aircraft.x < 930) {
+                aircraft.speed = 0;
+                aircraft.landed();
+            }
+        }
+    }
 }
 
 function handleInput() {
@@ -239,12 +321,19 @@ function handleInput() {
                 dropBomb();
         }
 
-        if (event.code === 'Enter' && aircraft.mode == Const.NEXT) {
+        if (event.code === 'Enter' && (aircraft.mode === Const.NEXT || aircraft.mode === Const.DESCENDING ||
+            aircraft.mode === Const.FLARE || aircraft.mode === Const.LANDED)) {
             currentScore.level = currentScore.level + 1;
+
+            if (currentScore.level > levels.length -1) {
+                currentScore.level = 1;
+            }
+
             createBuildings();
+            hideNextLevelPanel();
         }
 
-        if (event.code === 'KeyR' && aircraft.mode == Const.RESTART) {
+        if (event.code === 'KeyR' && aircraft.mode === Const.RESTART) {
             createBuildings();
         }
 
@@ -258,7 +347,8 @@ function handleInput() {
 
         if (testModeCounter > 3) {
             if (event.code === 'Escape') {
-                aircraft.isPaused = false;
+                aircraft.setFlightMode(Const.FLYING);
+                aircraft.speed = aircraftSpeed;
                 testModeCounter = 0;
             }
             if (event.code === 'ArrowRight') {
@@ -311,13 +401,12 @@ function handleInput() {
 function revealBuildings() {
     initialDelay++;
     if (initialDelay > 60) {
-
         const unrevealedBuilding = buildings.find(building => !building.isRevealed);
 
         if (unrevealedBuilding) {
             unrevealedBuilding.reveal(16);
         } else {
-            if (aircraft.mode == Const.READY) {
+            if (aircraft.mode === Const.READY) {
                 aircraft.setFlightMode(Const.FLYING);
             }
         }
@@ -381,6 +470,26 @@ function updateScoreDisplay() {
     scoreDisplay.highScoreValue.text = "" + currentScore.highScore;
 }
 
+function createBombsAvailable() {
+    const bombCount = 3;
+    const bombTexture = PIXI.Texture.from('images/bomb.png');
+    const bombContainer = new PIXI.Container();
+
+    for (let i = 0; i < bombCount; i++) {
+        const bomb = new PIXI.Sprite(bombTexture);
+        bomb.width = 12; // Set the bomb width
+        bomb.height = 22; // Set the bomb height
+
+        // Calculate x position
+        bomb.x = 600 + i * 22;
+        bomb.y = 2; // Place the bomb at the top of the screen
+
+        bombContainer.addChild(bomb);
+    }
+
+    return bombContainer;
+}
+
 function showCrashedPanel() {
     // Set the initial alpha of the retryContainer to 0 (invisible)
     retryContainer.alpha = 0;
@@ -394,9 +503,32 @@ function showCrashedPanel() {
     });
 }
 
+function showNextLevelPanel() {
+    // Set the initial alpha of the retryContainer to 0 (invisible)
+    nextLevelContainer.alpha = 0;
+
+    // Fade in the retryContainer using GSAP with a 3-second delay
+    gsap.to(nextLevelContainer, {
+        alpha: 1, // Target alpha value
+        duration: 0.5, // Animation duration in seconds
+        delay: 2.5 // Delay before starting the animation in seconds
+    });
+
+    landAircraft()
+}
+
 function hideCrashedPanel() {
     // Fade out the retryContainer using GSAP with a 1-second delay
     gsap.to(retryContainer, {
+        alpha: 0, // Target alpha value
+        duration: 1.0, // Animation duration in seconds
+        delay: 0.5 // Delay before starting the animation in seconds
+    });
+}
+
+function hideNextLevelPanel() {
+    // Fade out the retryContainer using GSAP with a 1-second delay
+    gsap.to(nextLevelContainer, {
         alpha: 0, // Target alpha value
         duration: 1.0, // Animation duration in seconds
         delay: 0.5 // Delay before starting the animation in seconds
@@ -454,6 +586,53 @@ function createRetryContainer() {
     return retryContainer;
 }
 
+function createNextLevelContainer() {
+    const nextLevelContainer = new PIXI.Container();
+    nextLevelContainer.alpha = 0;
+
+    // Create a semi-transparent rounded rectangle
+    const rectWidth = 500;
+    const rectHeight = 300;
+    const rectX = (canvasWidth - rectWidth) / 2;
+    const rectY = (canvasHeight - rectHeight) / 2;
+
+// Create a semi-transparent rounded rectangle in the middle of the screen
+    const rectangle = new PIXI.Graphics();
+    rectangle.beginFill(0x000000, 0.80); // Set fill color and alpha for transparency
+    rectangle.drawRoundedRect(rectX, rectY, rectWidth, rectHeight, 10); // Draw a 400x300 rounded rectangle
+    rectangle.endFill();
+    nextLevelContainer.addChild(rectangle);
+
+    // Create the "You Crashed!" text
+    const crashStyle = new PIXI.TextStyle({
+        fontFamily: 'space-font',
+        fontSize: 50,
+        fill: 'red',
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowDistance: 3,
+    });
+    const crashText = new PIXI.Text('LEVEL COMPLETE!', crashStyle);
+    crashText.anchor.set(0.5);
+    crashText.x = app.screen.width / 2;
+    crashText.y = 250;
+    nextLevelContainer.addChild(crashText);
+
+    // Create the "Click 'Enter' to continue" text
+    const tryAgainStyle = new PIXI.TextStyle({
+        fontFamily: 'space-font',
+        fontSize: 30,
+        fill: 'white',
+    });
+
+    const tryAgainText = new PIXI.Text('Click "Enter" for next level', tryAgainStyle);
+    tryAgainText.anchor.set(0.5);
+    tryAgainText.x = app.screen.width / 2;
+    tryAgainText.y = 370;
+    nextLevelContainer.addChild(tryAgainText);
+
+    return nextLevelContainer;
+}
 
 function drawDashedLine(graphics, startX, startY, endX, endY, dashLength, color, alpha) {
     const deltaX = endX - startX;
@@ -482,11 +661,12 @@ function drawStaticParts() {
     groundGraphics.drawRect(0, app.screen.height - groundHeight, app.screen.width, groundHeight);
     groundGraphics.endFill();
 
+    // Draw grass
     drawDashedLine(groundGraphics, 0, canvasHeight - groundHeight, canvasWidth,
         canvasHeight - groundHeight, 1, 0x006400, 1.0)
 
     // Draw the faded purple test lines
-   for (let y = canvasHeight - groundHeight; y >= 0; y -= 16) {
+   /* for (let y = canvasHeight - groundHeight; y >= 0; y -= 16) {
        drawDashedLine(groundGraphics, 0, y, canvasWidth, y, 2, 0x800080, 0.25)
         // Display the y value just under the purple line on the left
         const yText = new PIXI.Text(Math.round(y), { fontFamily: 'space-font', fontSize: 12, fill: 'black' });
@@ -495,7 +675,7 @@ function drawStaticParts() {
         yText.y = y + 12;
         groundGraphics.addChild(yText);
     }
-
+    */
     app.stage.addChild(groundGraphics);
     return groundGraphics;
 }
@@ -514,12 +694,14 @@ function createBuildings() {
     buildings = [];
     currentBuilding = 0;
     bonusPoints = 0;
+    initialDelay = 0;
 
-    currentScore.level = 15;
     let gameLevel = levels.find(level => level.id === currentScore.level);
     if (!gameLevel) gameLevel = levels.find(level => level.id === 1);
     log("Game level id: " + gameLevel.id);
     allowedNumberOfBombs = gameLevel.numberOfBombs;
+    updateBombsAvailable();
+
     buildingCount = gameLevel.buildingCount;
 
     // Place buildings in the centre outwards

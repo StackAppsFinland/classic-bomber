@@ -6,9 +6,9 @@ class Building {
         this.x = x;
         this.y = y;
         this.blocks = blocks;
-        this.baseImg = PIXI.Texture.from(`images/base${Math.floor(Math.random() * 15) + 1}.png`);
-        this.roofImg = PIXI.Texture.from(`images/roof${Math.floor(Math.random() * 18) + 1}.png`);
-        this.storeyImg = PIXI.Texture.from(`images/storey${Math.floor(Math.random() * 14) + 1}.png`);
+        this.baseImg = PIXI.Texture.from(`images/base${Math.floor(Math.random() * 28) + 1}.png`);
+        this.roofImg = PIXI.Texture.from(`images/roof${Math.floor(Math.random() * 22) + 1}.png`);
+        this.storeyImg = PIXI.Texture.from(`images/storey${Math.floor(Math.random() * 20) + 1}.png`);
         this.container = new PIXI.Container();
         this.damageContainer = new PIXI.Container();
         this.isRevealed = false;
@@ -42,20 +42,23 @@ class Building {
         }
 
         // Create a PIXI.Graphics object for the mask
-        const mask = new PIXI.Graphics();
+       // const mask = new PIXI.Graphics();
 
         // Draw a rectangle for the mask, covering the entire building container
-        mask.beginFill(0xffffff);
-        mask.drawRect(this.x, this.y, Const.BUILDING_WIDTH, this.y);
-        mask.endFill();
+      //  mask.beginFill(0xffffff);
+      //  mask.drawRect(this.x, this.y, Const.BUILDING_WIDTH, this.y);
+     //   mask.endFill();
 
         // Set the mask for the building container
-        this.container.mask = mask;
+      //  this.container.mask = mask;
 
         return this.container;
     }
 
     reveal(speed) {
+        this.isRevealed = true;
+        return;
+
         const mask = this.container.mask;
 
         this.revealY = this.revealY - speed;
@@ -88,7 +91,7 @@ class Building {
                 specialEffects.push(explosion);
                 this.removalAmount--;
 
-                if (this.removalAmount <= 0) this.createDamagedArea()
+                if (this.removalAmount <= 0 && this.container.children.length > 0) this.createDamagedArea()
             }
         }
     }
