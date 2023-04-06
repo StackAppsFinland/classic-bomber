@@ -1,4 +1,5 @@
 import ImageLoader from './imageLoader.js';
+import Panels from './panels.js';
 import Score from './score.js';
 import Building from './building.js';
 import Aircraft from "./aircraft.js";
@@ -31,17 +32,25 @@ imageLoader.loadImages(() => {
 }); */
 
 function classBomber() {
+    const engineSound = new Howl({
+        src: ['sounds/engine.mp3'],
+        volume: 0.3,
+        loop: true
+    });
+
     const soundsBombFalling = new Howl({
-        src: ['sounds/bomb-falling.mp3']
+        src: ['sounds/bomb-falling.mp3'],
+        volume: 0.5
     });
 
     const explodeSound = new Howl({
-        src: ['sounds/player-explode.wav']
+        src: ['sounds/player-explode.wav'],
+        volume: 1.0
     });
 
     const revealSound = new Howl({
         src: ['sounds/ascending_sound.wav'],
-        volume: 0.1
+        volume: 0.3
     });
 
     const notes = [
@@ -49,7 +58,7 @@ function classBomber() {
         'sounds/note2.wav',
         'sounds/note3.wav',
         'sounds/note4.wav',
-        'sounds/note5x.wav',
+        'sounds/note5.wav',
         'sounds/note6.wav',
     ];
 
@@ -57,8 +66,9 @@ function classBomber() {
         return new Howl({
             src: [note],
             sprite: {
-                short: [0, 100], // start at 0ms, end at 100ms
+                short: [0, 100]
             },
+            volume: 0.4
         });
     });
 
@@ -78,6 +88,7 @@ function classBomber() {
     const cloudSpeed = 1;
     let initialDelay = 0;
     let aircraftSpeed = 1.35;
+    let isGameReady = false;
 
 // Create a PixiJS Application
     const app = new PIXI.Application({
@@ -106,27 +117,27 @@ function classBomber() {
     app.stage.addChild(buildingsContainer);
     const buildingDamageContainer = new PIXI.Container();
     app.stage.addChild(buildingDamageContainer);
-    const aircraft = new Aircraft(app, currentScore, aircraftSpeed, perfTestReady);
-    const retryContainer = createRetryContainer();
-    const nextLevelContainer = createNextLevelContainer();
+    const aircraft = new Aircraft(app, currentScore, aircraftSpeed, performanceTestReady);
     const bombContainer = new PIXI.Container();
     app.stage.addChild(bombContainer);
-
-    createBuildings()
-
 
     app.stage.addChild(aircraft.getContainer());
     app.stage.addChild(aircraft.bombSightContainer);
     const bonusMessageContainer = new PIXI.Container();
     app.stage.addChild(bonusMessageContainer);
-    app.stage.addChild(retryContainer);
-    app.stage.addChild(nextLevelContainer);
+
+    const panels = new Panels(canvasWidth, canvasHeight);
+    app.stage.addChild(panels.getBeginGameContainer());
+    app.stage.addChild(panels.getRetryContainer());
+    app.stage.addChild(panels.getNextLevelContainer());
 
     app.ticker.add(gameLoop);
 
-    function perfTestReady() {
+    function performanceTestReady() {
         aircraftSpeed = aircraft.originalSpeed;
+        panels.showBeginGamePanel();
         console.log(aircraftSpeed)
+        isGameReady = true;
     }
 
 // Define the game loop
@@ -303,18 +314,20 @@ function classBomber() {
 
             if (aircraft.container.getBounds().intersects(buildingRect)) {
                 explodeSound.play();
+                engineSound.stop();
                 aircraft.setFlightMode(Const.CRASHED);
                 createExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 1500, 200);
                 createBuildingExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 2500, 80);
                 buildingsContainer.children[j].buildingInstance.setRemovalAmount(2);
-                showCrashedPanel();
+                panels.showCrashedPanel(() =>  aircraft.setFlightMode(Const.RESTART));
             }
         }
 
         if (isEmptyCount === buildingsContainer.children.length) {
-            if (aircraft.mode === Const.FLYING) {
+            if (aircraft.mode === Const.FLYING && isGameReady) {
                 aircraft.setFlightMode(Const.DESCENDING);
-                showNextLevelPanel();
+                engineSound.stop();
+                panels.showNextLevelPanel(() => landAircraft());
             }
         }
     }
@@ -370,6 +383,8 @@ function classBomber() {
 
     function handleInput() {
         window.addEventListener('keydown', (event) => {
+            if (!isGameReady) return;
+
             if (event.code === 'KeyT') {
                 testModeCounter++;
 
@@ -396,7 +411,8 @@ function classBomber() {
                 }
 
                 createBuildings();
-                hideNextLevelPanel();
+                panels.hideNextLevelPanel();
+                panels.hideBeginGameContainer();
             }
 
             if (event.code === 'KeyR' && aircraft.mode === Const.RESTART) {
@@ -563,150 +579,6 @@ function classBomber() {
         return bombContainer;
     }
 
-    function showCrashedPanel() {
-        // Set the initial alpha of the retryContainer to 0 (invisible)
-        retryContainer.alpha = 0;
-
-        // Fade in the retryContainer using GSAP with a 3-second delay
-        gsap.to(retryContainer, {
-            alpha: 1, // Target alpha value
-            duration: 0.5, // Animation duration in seconds
-            delay: 1.5, // Delay before starting the animation in seconds
-            onComplete: onFadeInComplete, // Function to call when the animation is completed
-        });
-    }
-
-    function showNextLevelPanel() {
-        // Set the initial alpha of the retryContainer to 0 (invisible)
-        nextLevelContainer.alpha = 0;
-
-        // Fade in the retryContainer using GSAP with a 3-second delay
-        gsap.to(nextLevelContainer, {
-            alpha: 1, // Target alpha value
-            duration: 0.5, // Animation duration in seconds
-            delay: 2.5 // Delay before starting the animation in seconds
-        });
-
-        landAircraft()
-    }
-
-    function hideCrashedPanel() {
-        // Fade out the retryContainer using GSAP with a 1-second delay
-        gsap.to(retryContainer, {
-            alpha: 0, // Target alpha value
-            duration: 1.0, // Animation duration in seconds
-            delay: 0.5 // Delay before starting the animation in seconds
-        });
-    }
-
-    function hideNextLevelPanel() {
-        // Fade out the retryContainer using GSAP with a 1-second delay
-        gsap.to(nextLevelContainer, {
-            alpha: 0, // Target alpha value
-            duration: 1.0, // Animation duration in seconds
-            delay: 0.5 // Delay before starting the animation in seconds
-        });
-    }
-
-    function onFadeInComplete() {
-        aircraft.setFlightMode(Const.RESTART)
-    }
-
-    function createRetryContainer() {
-        const retryContainer = new PIXI.Container();
-        retryContainer.alpha = 0;
-
-        // Create a semi-transparent rounded rectangle
-        const rectWidth = 500;
-        const rectHeight = 300;
-        const rectX = (canvasWidth - rectWidth) / 2;
-        const rectY = (canvasHeight - rectHeight) / 2;
-
-// Create a semi-transparent rounded rectangle in the middle of the screen
-        const rectangle = new PIXI.Graphics();
-        rectangle.beginFill(0x000000, 0.80); // Set fill color and alpha for transparency
-        rectangle.drawRoundedRect(rectX, rectY, rectWidth, rectHeight, 10); // Draw a 400x300 rounded rectangle
-        rectangle.endFill();
-        retryContainer.addChild(rectangle);
-
-        // Create the "You Crashed!" text
-        const crashStyle = new PIXI.TextStyle({
-            fontFamily: 'space-font',
-            fontSize: 50,
-            fill: 'red',
-            dropShadow: true,
-            dropShadowColor: 0x000000,
-            dropShadowDistance: 3,
-        });
-        const crashText = new PIXI.Text('YOU CRASHED!', crashStyle);
-        crashText.anchor.set(0.5);
-        crashText.x = app.screen.width / 2;
-        crashText.y = 250;
-        retryContainer.addChild(crashText);
-
-        // Create the "Click 'Enter' to try again" text
-        const tryAgainStyle = new PIXI.TextStyle({
-            fontFamily: 'space-font',
-            fontSize: 30,
-            fill: 'white',
-        });
-        const tryAgainText = new PIXI.Text('Click "R" to try again', tryAgainStyle);
-        tryAgainText.anchor.set(0.5);
-        tryAgainText.x = app.screen.width / 2;
-        tryAgainText.y = 370;
-        retryContainer.addChild(tryAgainText);
-
-        return retryContainer;
-    }
-
-    function createNextLevelContainer() {
-        const nextLevelContainer = new PIXI.Container();
-        nextLevelContainer.alpha = 0;
-
-        // Create a semi-transparent rounded rectangle
-        const rectWidth = 500;
-        const rectHeight = 300;
-        const rectX = (canvasWidth - rectWidth) / 2;
-        const rectY = (canvasHeight - rectHeight) / 2;
-
-// Create a semi-transparent rounded rectangle in the middle of the screen
-        const rectangle = new PIXI.Graphics();
-        rectangle.beginFill(0x000000, 0.80); // Set fill color and alpha for transparency
-        rectangle.drawRoundedRect(rectX, rectY, rectWidth, rectHeight, 10); // Draw a 400x300 rounded rectangle
-        rectangle.endFill();
-        nextLevelContainer.addChild(rectangle);
-
-        // Create the "You Crashed!" text
-        const crashStyle = new PIXI.TextStyle({
-            fontFamily: 'space-font',
-            fontSize: 50,
-            fill: 'red',
-            dropShadow: true,
-            dropShadowColor: 0x000000,
-            dropShadowDistance: 3,
-        });
-        const crashText = new PIXI.Text('LEVEL COMPLETE!', crashStyle);
-        crashText.anchor.set(0.5);
-        crashText.x = app.screen.width / 2;
-        crashText.y = 250;
-        nextLevelContainer.addChild(crashText);
-
-        // Create the "Click 'Enter' to continue" text
-        const tryAgainStyle = new PIXI.TextStyle({
-            fontFamily: 'space-font',
-            fontSize: 30,
-            fill: 'white',
-        });
-
-        const tryAgainText = new PIXI.Text('Click "Enter" for next level', tryAgainStyle);
-        tryAgainText.anchor.set(0.5);
-        tryAgainText.x = app.screen.width / 2;
-        tryAgainText.y = 370;
-        nextLevelContainer.addChild(tryAgainText);
-
-        return nextLevelContainer;
-    }
-
     function drawDashedLine(graphics, startX, startY, endX, endY, dashLength, color, alpha) {
         const deltaX = endX - startX;
         const deltaY = endY - startY;
@@ -760,7 +632,7 @@ function classBomber() {
             child.destroy();
         }
 
-        hideCrashedPanel();
+        panels.hideCrashedPanel();
         buildingsContainer.removeChildren();
         buildingDamageContainer.removeChildren()
 
@@ -769,9 +641,10 @@ function classBomber() {
         bonusPoints = 0;
         initialDelay = 0;
 
+        engineSound.play();
+
         let gameLevel = levels.find(level => level.id === currentScore.level);
         if (!gameLevel) gameLevel = levels.find(level => level.id === 1);
-        log("Game level id: " + gameLevel.id);
         allowedNumberOfBombs = gameLevel.numberOfBombs;
         updateBombsAvailable();
 

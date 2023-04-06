@@ -98,8 +98,9 @@ class Aircraft {
                 console.log("speedMultiplier:" + this.speedMultiplier);
                 this.speed = this.speedMultiplier * this.originalSpeed;
                 this.originalSpeed = this.speed;
-                console.log("Aircraft calculated speed setting: " + this.speed)
-
+                console.log("Aircraft calculated speed setting: " + this.speed);
+                this.setFlightMode(Const.NEXT);
+                this.x = this.width * -4;
                 this.offscreenPerfTest = false;
                 this.perfTestCallback();
             }
@@ -237,19 +238,19 @@ class Aircraft {
 
     rotateCounterClockwise() {
         this.rotationTarget = -13;
-        this.rotationSpeed = 0.2;
+        this.rotationSpeed = 0.2 * this.speedMultiplier;
         this.animateRotation();
     }
 
     rotateClockwise() {
         this.rotationTarget = 10;
-        this.rotationSpeed = 0.2;
+        this.rotationSpeed = 0.2 * this.speedMultiplier;
         this.animateRotation();
     }
 
     levelFlight() {
         this.rotationTarget = 0;
-        this.rotationSpeed = 0.1;
+        this.rotationSpeed = 0.1 * this.speedMultiplier;
         this.animateRotation();
     }
 
