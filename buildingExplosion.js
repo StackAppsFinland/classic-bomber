@@ -1,13 +1,19 @@
 
 
 class BuildingExplosion {
-    constructor(x, y, duration, numParticles) {
+    constructor(x, y, duration, numParticles, speedMultiplier) {
         this.x = x;
         this.y = y;
         this.duration = duration;
         this.numParticles = numParticles;
         this.container = new PIXI.Container();
         this.isFinished = false;
+        this.vxSpeed = 0.25 * speedMultiplier;
+        this.vySpeed = 0.35 * speedMultiplier;
+        this.gravity = 0.007 * speedMultiplier;
+        this.rotationSpeed = 0.06 * speedMultiplier;
+        this.rotationStart = this.rotationSpeed / 2;
+        this.speedMultiplier = speedMultiplier;
         this.createParticles();
     }
 
@@ -24,12 +30,12 @@ class BuildingExplosion {
 
             rectangle.x = this.x;
             rectangle.y = this.y;
-            rectangle.vx = (Math.random() * 2 - 1) * 0.25;
-            rectangle.vy = (Math.random() * 2 - 1) * 0.35;
-            rectangle.gravity = 0.007;
+            rectangle.vx = (Math.random() * 2 - 1) * this.vxSpeed;
+            rectangle.vy = (Math.random() * 2 - 1) * this.vySpeed;
+            rectangle.gravity = this.gravity;
             rectangle.alpha = 1;
             rectangle.rotation = Math.floor(Math.random() * 360);
-            rectangle.rotationSpeed = (Math.random() * 0.04 - 0.02);
+            rectangle.rotationSpeed = (Math.random() * this.rotationSpeed - this.rotationStart);
             this.container.addChild(rectangle);
         }
 
@@ -45,7 +51,7 @@ class BuildingExplosion {
             particle.x += particle.vx;
             particle.y += particle.vy;
             particle.vy += particle.gravity; // Apply gravity
-            particle.alpha = particle.alpha - 0.003;
+            particle.alpha = particle.alpha - 0.003 * this.speedMultiplier;
             particle.rotation += particle.rotationSpeed;
         }
     }

@@ -2,7 +2,7 @@ import BuildingExplosion from "./buildingExplosion.js";
 import Const from "./constants.js"
 
 class Building {
-    constructor(x, y, blocks) {
+    constructor(x, y, blocks, speedMultiplier) {
         this.x = x;
         this.y = y;
         this.blocks = blocks;
@@ -17,7 +17,9 @@ class Building {
         this.noteIndex = 0;
         this.lastMillis = 0;
         this.topBlockY = 0;
-        this.damageRectangles = []
+        this.damageRectangles = [];
+        this.revealSpeed = 170 * speedMultiplier;
+        this.speedMultiplier = speedMultiplier;
     }
 
     getBuildingContainer() {
@@ -51,10 +53,10 @@ class Building {
         return this.container;
     }
 
-    reveal(speed) {
+    reveal() {
         const mask = this.container.mask;
 
-        this.revealY = this.revealY - speed;
+        this.revealY = this.revealY - Const.BLOCK_HEIGHT;
         if (this.revealY < this.topBlockY) {
             this.revealY = this.topBlockY;
             this.container.mask = null;
@@ -77,14 +79,14 @@ class Building {
         const currentMillis = Date.now();
 
         if (currentMillis > this.lastMillis) {
-            this.lastMillis = currentMillis + 170;
+            this.lastMillis = currentMillis + this.revealSpeed;
             if (this.removalAmount > 0 && this.container.children.length > 0) {
                 notes[this.noteIndex++].play('short');
                 const blockSprite = this.container.children[this.container.children.length - 1];
                 this.container.removeChild(blockSprite);
 
                 const explosion = new BuildingExplosion(blockSprite.x + Math.random() * Const.BUILDING_WIDTH,
-                    blockSprite.y + Const.BLOCK_HEIGHT, 2300, 50);
+                    blockSprite.y + Const.BLOCK_HEIGHT, 2300, 50, this.speedMultiplier);
                 stage.addChild(explosion.container);
                 specialEffects.push(explosion);
                 this.removalAmount--;

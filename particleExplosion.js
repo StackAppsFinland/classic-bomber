@@ -1,11 +1,12 @@
 class ParticleExplosion {
-    constructor(x, y, duration, numParticles) {
+    constructor(x, y, duration, numParticles, speedMultiplier) {
         this.x = x;
         this.y = y;
         this.duration = duration;
         this.numParticles = numParticles;
         this.container = new PIXI.Container();
         this.isFinished = false;
+        this.speedMultiplier = speedMultiplier;
         this.createParticles();
     }
 
@@ -32,8 +33,8 @@ class ParticleExplosion {
 
             circle.x = this.x;
             circle.y = this.y;
-            circle.vx = (Math.random() * 2 - 1) * 1;
-            circle.vy = (Math.random() * 2 - 1) * 1;
+            circle.vx = (Math.random() * 2 - 1) * this.speedMultiplier;
+            circle.vy = (Math.random() * 2 - 1) * this.speedMultiplier;
             circle.alpha = 1;
             this.container.addChild(circle);
         }
@@ -49,7 +50,7 @@ class ParticleExplosion {
             const particle = this.container.children[i];
             particle.x += particle.vx;
             particle.y += particle.vy;
-            particle.alpha *= 0.95;
+            particle.alpha *= (0.95 * this.speedMultiplier);
         }
     }
 }

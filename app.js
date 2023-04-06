@@ -333,13 +333,13 @@ function classBomber() {
     }
 
     function createBuildingExplosion(x, y, duration, numberOfParticles) {
-        const explosion = new BuildingExplosion(x, y, duration, numberOfParticles);
+        const explosion = new BuildingExplosion(x, y, duration, numberOfParticles, aircraft.speedMultiplier);
         app.stage.addChild(explosion.container);
         specialEffects.push(explosion);
     }
 
     function createExplosion(x, y, duration, numberOfParticles) {
-        const explosion = new ParticleExplosion(x, y, duration, numberOfParticles);
+        const explosion = new ParticleExplosion(x, y, duration, numberOfParticles, aircraft.speedMultiplier);
         app.stage.addChild(explosion.container);
         specialEffects.push(explosion);
     }
@@ -492,7 +492,7 @@ function classBomber() {
                     revealSound.stop();
                     revealSound.play();
                 }
-                unrevealedBuilding.reveal(16);
+                unrevealedBuilding.reveal();
             } else {
                 if (aircraft.mode === Const.READY) {
                     revealSound.stop();
@@ -672,7 +672,7 @@ function classBomber() {
 
             const x = startX + i * (Const.BUILDING_WIDTH + buildingGap);
             let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-            const building = new Building(x, canvasHeight - groundHeight, blocks)
+            const building = new Building(x, canvasHeight - groundHeight, blocks, aircraft.speedMultiplier)
             const buildingSpriteContainer = building.getBuildingContainer();
             buildingSpriteContainer.buildingInstance = building;
             buildingsContainer.addChild(buildingSpriteContainer)

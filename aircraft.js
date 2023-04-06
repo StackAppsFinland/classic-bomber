@@ -15,7 +15,7 @@ class Aircraft {
         this.halfWidth = this.width / 2;
         this.flightLevel = 1;
         this.y = this.startingPositionY;
-        this.x = this.width * -4;
+        this.x = this.width * -2;
         this.speed = speed;
         this.originalSpeed = speed;
         this.planeImg = PIXI.Texture.from(`images/bomber.png`);
@@ -30,7 +30,6 @@ class Aircraft {
         this.propellerChange = 0;
         this.isPaused = false;
         this.rotationAngle = 0; // initial rotation angle is 0 degrees
-        this.currentScore = currentScore;
         this.rotationSpeed = 5; // replace 5 with any value that works for your needs
         this.rotationTarget = 0;
         this.lineGraphics = new PIXI.Graphics();
