@@ -18,7 +18,7 @@ class Building {
         this.lastMillis = 0;
         this.topBlockY = 0;
         this.damageRectangles = [];
-        this.revealSpeed = 170 * speedMultiplier;
+        this.revealSpeed = 170;
         this.speedMultiplier = speedMultiplier;
     }
 
