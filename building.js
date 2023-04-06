@@ -74,7 +74,6 @@ class Building {
     }
 
     removalBlock(notes, stage, specialEffects) {
-        console.log("hiow  many")
         const currentMillis = Date.now();
 
         if (currentMillis > this.lastMillis) {

@@ -1,8 +1,10 @@
 import Const from './constants.js';
 
+// Initial calculation on M1 Mac for time of aircraft to move 4 * width
+const timeOverDistanceBaseLineMillis = 384;
 
 class Aircraft {
-    constructor(app, currentScore, speed) {
+    constructor(app, currentScore, speed, perfTestCallback) {
         this.app = app;
         this.mode = Const.READY;
         this.width = 62;
@@ -13,7 +15,7 @@ class Aircraft {
         this.halfWidth = this.width / 2;
         this.flightLevel = 1;
         this.y = this.startingPositionY;
-        this.x = this.width * -2;
+        this.x = this.width * -4;
         this.speed = speed;
         this.originalSpeed = speed;
         this.planeImg = PIXI.Texture.from(`images/bomber.png`);
@@ -32,6 +34,10 @@ class Aircraft {
         this.rotationSpeed = 5; // replace 5 with any value that works for your needs
         this.rotationTarget = 0;
         this.lineGraphics = new PIXI.Graphics();
+        this.offscreenPerfTest = true;
+        this.timeTest = 0;
+        this.speedMultiplier = 1.0;
+        this.perfTestCallback = perfTestCallback;
     }
 
     reset() {
@@ -79,6 +85,26 @@ class Aircraft {
     }
 
     updatePosition() {
+        if (this.offscreenPerfTest) {
+            if (this.timeTest === 0) {
+                console.log("performance orientation now at " + Date.now())
+                this.timeTest = Date.now();
+            }
+
+            if (this.x + this.width >= -1) {
+                const result = Date.now() - this.timeTest;
+                console.log("performance result millis: " + result);
+                this.speedMultiplier = result / timeOverDistanceBaseLineMillis
+                console.log("speedMultiplier:" + this.speedMultiplier);
+                this.speed = this.speedMultiplier * this.originalSpeed;
+                this.originalSpeed = this.speed;
+                console.log("Aircraft calculated speed setting: " + this.speed)
+
+                this.offscreenPerfTest = false;
+                this.perfTestCallback();
+            }
+        }
+
         this.x = this.x + this.speed;
         if (this.x - this.width > this.app.screen.width) {
             if (this.mode === Const.FLYING) {

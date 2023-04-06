@@ -35,12 +35,21 @@ function classBomber() {
         src: ['sounds/bomb-falling.mp3']
     });
 
+    const explodeSound = new Howl({
+        src: ['sounds/player-explode.wav']
+    });
+
+    const revealSound = new Howl({
+        src: ['sounds/ascending_sound.wav'],
+        volume: 0.1
+    });
+
     const notes = [
         'sounds/note1.wav',
         'sounds/note2.wav',
         'sounds/note3.wav',
         'sounds/note4.wav',
-        'sounds/note5.wav',
+        'sounds/note5x.wav',
         'sounds/note6.wav',
     ];
 
@@ -97,7 +106,7 @@ function classBomber() {
     app.stage.addChild(buildingsContainer);
     const buildingDamageContainer = new PIXI.Container();
     app.stage.addChild(buildingDamageContainer);
-    const aircraft = new Aircraft(app, currentScore, aircraftSpeed);
+    const aircraft = new Aircraft(app, currentScore, aircraftSpeed, perfTestReady);
     const retryContainer = createRetryContainer();
     const nextLevelContainer = createNextLevelContainer();
     const bombContainer = new PIXI.Container();
@@ -114,6 +123,11 @@ function classBomber() {
     app.stage.addChild(nextLevelContainer);
 
     app.ticker.add(gameLoop);
+
+    function perfTestReady() {
+        aircraftSpeed = aircraft.originalSpeed;
+        console.log(aircraftSpeed)
+    }
 
 // Define the game loop
     function gameLoop() {
@@ -288,6 +302,7 @@ function classBomber() {
             buildingRect.x = buildingRect.x + 3;
 
             if (aircraft.container.getBounds().intersects(buildingRect)) {
+                explodeSound.play();
                 aircraft.setFlightMode(Const.CRASHED);
                 createExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 1500, 200);
                 createBuildingExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 2500, 80);
@@ -449,15 +464,22 @@ function classBomber() {
         });
     }
 
+    let playingForBuilding = null;
     function revealBuildings() {
         initialDelay++;
         if (initialDelay > 60) {
             const unrevealedBuilding = buildings.find(building => !building.isRevealed);
 
             if (unrevealedBuilding) {
+                if (playingForBuilding !== unrevealedBuilding) {
+                    playingForBuilding = unrevealedBuilding;
+                    revealSound.stop();
+                    revealSound.play();
+                }
                 unrevealedBuilding.reveal(16);
             } else {
                 if (aircraft.mode === Const.READY) {
+                    revealSound.stop();
                     aircraft.setFlightMode(Const.FLYING);
                 }
             }

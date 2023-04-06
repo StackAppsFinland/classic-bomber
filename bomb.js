@@ -19,7 +19,6 @@ class Bomb {
         bomb.anchor.set(0.5);
 
         this.container.x = this.x + this.width / 2; // Update the container position
-        console.log(this.width / 2);
         this.container.y = this.y + this.height / 2;
         this.container.addChild(bomb);
         this.container.rotation = -Math.PI / 2;
