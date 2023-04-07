@@ -1,120 +1,91 @@
-class ImageLoader {
-  constructor() {
-    this.container = new PIXI.Container();
-    this.loader = new PIXI.Loader();
-  }
+const loadImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.src = src;
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Image not found: ${src}`));
+  });
+};
 
-  loadImages(callback) {
-    const imageFilenames = [
-      'base1.png',
-      'base10.png',
-      'base11.png',
-      'base12.png',
-      'base13.png',
-      'base14.png',
-      'base15.png',
-      'base16.png',
-      'base17.png',
-      'base18.png',
-      'base19.png',
-      'base2.png',
-      'base20.png',
-      'base21.png',
-      'base22.png',
-      'base23.png',
-      'base24.png',
-      'base25.png',
-      'base26.png',
-      'base27.png',
-      'base28.png',
-      'base3.png',
-      'base4.png',
-      'base5.png',
-      'base6.png',
-      'base7.png',
-      'base8.png',
-      'base9.png',
+class ImageLoader {
+  constructor(callback) {
+    this.imageFilenames = [
+      'base.png:28',
       'bomb.png',
       'bomber.png',
       'bomberSheet-37x380x4.png',
-      'cloud1.png',
-      'prop1.png',
-      'prop2.png',
-      'prop3.png',
+      'cloud.png:12',
+      'prop.png:3',
       'propeller-37x5x4.png',
-      'propeller1.png',
-      'propeller2.png',
-      'propeller3.png',
-      'roof1.png',
-      'roof10.png',
-      'roof11.png',
-      'roof12.png',
-      'roof13.png',
-      'roof14.png',
-      'roof15.png',
-      'roof16.png',
-      'roof17.png',
-      'roof18.png',
-      'roof19.png',
-      'roof2.png',
-      'roof20.png',
-      'roof21.png',
-      'roof22.png',
-      'roof3.png',
-      'roof4.png',
-      'roof5.png',
-      'roof6.png',
-      'roof7.png',
-      'roof8.png',
-      'roof9.png',
-      'storey1.png',
-      'storey10.png',
-      'storey11.png',
-      'storey12.png',
-      'storey13.png',
-      'storey14.png',
-      'storey15.png',
-      'storey16.png',
-      'storey17.png',
-      'storey18.png',
-      'storey19.png',
-      'storey2.png',
-      'storey20.png',
-      'storey3.png',
-      'storey4.png',
-      'storey5.png',
-      'storey6.png',
-      'storey7.png',
-      'storey8.png',
-      'storey9.png',
+      'propeller.png:3',
+      'roof.png:22',
+      'storey.png:20',
       'type1-base.png',
       'waveSheet-7x9x4.png',
-      'waveSheet.png',
-        'cloud1.png',
-        'cloud2.png',
-        'cloud3.png',
-        'cloud4.png',
-        'cloud5.png',
-        'cloud6.png',
-        'cloud7.png',
-        'cloud8.png',
-        'cloud9.png',
-        'cloud10.png',
-        'cloud11.png',
-        'cloud12.png'
+      'waveSheet.png'
     ];
+    this.textures = new Map();
+    this.matchingTexturesCache = new Map();
+    this.loadTextures(callback);
+  }
 
-    imageFilenames.forEach((filename) => {
-      console.log(this.loader)
-      this.loader.add(filename, `images/${filename}`);
-    });
+  getImage(id) {
+    return this.textures.get(id);
+  }
 
-    this.loader.load(() => {
+  getRandomImage(prefix) {
+    if (!this.matchingTexturesCache.has(prefix)) {
+      const matchingTextures = Array.from(this.textures.keys()).filter(key => key.startsWith(prefix));
+      this.matchingTexturesCache.set(prefix, matchingTextures);
+    }
 
-      if (callback) {
-        callback();
+    const cachedMatchingTextures = this.matchingTexturesCache.get(prefix);
+
+    if (cachedMatchingTextures.length === 0) {
+      return null;
+    }
+
+    const randomIndex = Math.floor(Math.random() * cachedMatchingTextures.length);
+    const randomId = cachedMatchingTextures[randomIndex];
+    return this.textures.get(randomId);
+  }
+
+  parseFilenames() {
+    const expandedFilenames = [];
+
+    this.imageFilenames.forEach(filename => {
+      const [baseName, range] = filename.split(':');
+
+      if (range) {
+        const end = parseInt(range, 10);
+        for (let i = 1; i <= end; i++) {
+          expandedFilenames.push(`${baseName.slice(0, -4)}${i}.png`);
+        }
+      } else {
+        expandedFilenames.push(filename);
       }
     });
+
+    return expandedFilenames;
+  }
+
+  loadTextures(callback) {
+    const expandedFilenames = this.parseFilenames();
+    const loadPromises = expandedFilenames.map(filename => {
+      const id = filename.split('.')[0];
+      const src = `images/${filename}`;
+      return loadImage(src)
+          .then(image => {
+            const texture = PIXI.Texture.from(image);
+            this.textures.set(id, texture);
+          })
+          .catch((ex) => {
+            console.log(ex);
+            console.error(`Image not found: ${src}`);
+          });
+    });
+
+    Promise.all(loadPromises).then(callback);
   }
 }
 

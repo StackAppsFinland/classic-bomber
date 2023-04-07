@@ -16,25 +16,17 @@ WebFont.load({
         urls: ['SHPinscher-Regular.otf']
     },
     active: function () {
-        // Initialize your PIXI.js application here
-        const imageLoader = new ImageLoader();
-        imageLoader.loadImages(() => {
-            console.log("Loading images....")
-            classBomber();
-        });
+        console.log("All sound files loaded")
+        const onImagesLoaded = () => {
+            console.log('All images have been loaded.');
+            classBomber(imageLoader);
+        };
+        const imageLoader = new ImageLoader(onImagesLoaded);
     }
 });
 
-/* function initPIXI() {
-    // Your PIXI.js initialization and rendering code here
-}
 
-const imageLoader = new ImageLoader();
-imageLoader.loadImages(() => {
-    classBomber();
-}); */
-
-function classBomber() {
+function classBomber(imageLoader) {
     const engineSound = new Howl({
         src: ['sounds/engine.mp3'],
         volume: 0.3,
@@ -75,6 +67,7 @@ function classBomber() {
         });
     });
 
+    const images = imageLoader;
     const groundHeight = 10;
     const buildingGap = 8;
     const testModeActive = 4;
@@ -90,6 +83,8 @@ function classBomber() {
     let initialDelay = 0;
     let aircraftSpeed = 1.35;
     let isGameReady = false;
+    let nextCloudTime = generateRandomTime();
+    let lastCloudTime = 0;
 
 // Create a PixiJS Application
     const app = new PIXI.Application({
@@ -135,7 +130,7 @@ function classBomber() {
     app.stage.addChild(panels.getBeginGameContainer(currentScore.level));
     app.stage.addChild(panels.getRetryContainer());
     app.stage.addChild(panels.getNextLevelContainer());
-addCloudToContainer();
+    addCloudToContainer();
     app.ticker.add(gameLoop);
 
     function performanceTestReady() {
@@ -168,16 +163,31 @@ addCloudToContainer();
         }
     }
 
-    function addCloudToContainer(imageURL) {
-        const cloudTexture = PIXI.Texture.from('images/cloud1.png');
-        const cloud = new PIXI.Sprite(cloudTexture);
-
+    function addCloudToContainer() {
+        const cloud = new PIXI.Sprite(images.getRandomImage("cloud"));
         cloud.x = canvasWidth + 1;
-        cloud.y = Math.random() * (450 - 50) + 50;
+        const max = 400 - cloud.height;
+        cloud.y = Math.floor(Math.random() * (max - 40 + 1)) + 40
         cloud.vx = -0.5;
         cloud.alpha = 0.25;
 
         cloudContainer.addChild(cloud);
+
+        generateRandomTime();
+    }
+
+    function randomlyAddClouds(currentTime) {
+        if (currentTime - this.lastCloudTime >= this.nextCloudTime) {
+            if (cloudContainer.length < currentScore.level.clouds) addCloudToContainer();
+            nextCloudTime = this.generateRandomTime();
+            lastCloudTime = currentTime;
+        }
+    }
+
+    function generateRandomTime() {
+        const minTime = 10000;
+        const maxTime = 30000;
+        return Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
     }
 
     function moveClouds() {
@@ -741,7 +751,7 @@ addCloudToContainer();
 
             const x = startX + i * (Const.BUILDING_WIDTH + buildingGap);
             let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-            const building = new Building(x, canvasHeight - groundHeight, blocks, aircraft.speedMultiplier)
+            const building = new Building(x, canvasHeight - groundHeight, blocks, aircraft.speedMultiplier, images)
             const buildingSpriteContainer = building.getBuildingContainer();
             buildingSpriteContainer.buildingInstance = building;
             buildingsContainer.addChild(buildingSpriteContainer)

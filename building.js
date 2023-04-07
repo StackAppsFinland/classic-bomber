@@ -2,13 +2,13 @@ import BuildingExplosion from "./buildingExplosion.js";
 import Const from "./constants.js"
 
 class Building {
-    constructor(x, y, blocks, speedMultiplier) {
+    constructor(x, y, blocks, speedMultiplier, images) {
         this.x = x;
         this.y = y;
         this.blocks = blocks;
-        this.baseImg = PIXI.Texture.from(`images/base${Math.floor(Math.random() * 28) + 1}.png`);
-        this.roofImg = PIXI.Texture.from(`images/roof${Math.floor(Math.random() * 22) + 1}.png`);
-        this.storeyImg = PIXI.Texture.from(`images/storey${Math.floor(Math.random() * 20) + 1}.png`);
+        this.baseImg = PIXI.Texture.from(images.getRandomImage("base"));
+        this.roofImg = PIXI.Texture.from(images.getRandomImage("roof"));
+        this.storeyImg = PIXI.Texture.from(images.getRandomImage("storey"));
         this.container = new PIXI.Container();
         this.damageContainer = new PIXI.Container();
         this.isRevealed = false;
