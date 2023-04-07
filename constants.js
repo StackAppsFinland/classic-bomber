@@ -7,9 +7,12 @@ const Const = {
     CRASHED: 5,
     RESTART: 6,
     NEXT: 7,
+    NEW: 8,
 
     BUILDING_WIDTH: 40,
-    BLOCK_HEIGHT: 16
+    BLOCK_HEIGHT: 16,
+
+    GAME_NAME: "stackapps.retro.city-bomber"
 };
 
 export default Const;

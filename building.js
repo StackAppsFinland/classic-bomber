@@ -20,6 +20,7 @@ class Building {
         this.damageRectangles = [];
         this.revealSpeed = 170;
         this.speedMultiplier = speedMultiplier;
+        this.callback = null;
     }
 
     getBuildingContainer() {
@@ -70,9 +71,10 @@ class Building {
         mask.endFill();
     }
 
-    setRemovalAmount(amount) {
+    setRemovalAmount(amount, callback) {
         this.removalAmount = amount;
         this.noteIndex = 0;
+        this.callback = callback;
     }
 
     removalBlock(notes, stage, specialEffects) {
@@ -101,6 +103,7 @@ class Building {
     }
 
     createDamagedArea() {
+        //this.callback();
         this.damageContainer.removeChildren();
 
         if (this.container.children.length < 1) {

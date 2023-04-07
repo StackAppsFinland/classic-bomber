@@ -10,7 +10,6 @@ import ParticleExplosion from "./particleExplosion.js";
 import BonusMessage from "./bonusMessage.js";
 import Const from "./constants.js";
 
-
 WebFont.load({
     custom: {
         families: ['space-font'],
@@ -100,6 +99,7 @@ function classBomber() {
 
     gsap.registerPlugin(PixiPlugin);
 
+    currentScore.loadGameData();
     handleInput()
 // Add after app created
     const canvasWidth = app.screen.width;
@@ -127,7 +127,7 @@ function classBomber() {
     app.stage.addChild(bonusMessageContainer);
 
     const panels = new Panels(canvasWidth, canvasHeight);
-    app.stage.addChild(panels.getBeginGameContainer());
+    app.stage.addChild(panels.getBeginGameContainer(currentScore.level));
     app.stage.addChild(panels.getRetryContainer());
     app.stage.addChild(panels.getNextLevelContainer());
 
@@ -200,6 +200,10 @@ function classBomber() {
             const buildingSpriteContainer = buildingsContainer.children[j];
             const building = buildingSpriteContainer.buildingInstance;
             building.removalBlock(noteSounds, app.stage, specialEffects);
+
+            if (building.container.children.length === 0 && building.damageContainer.children.length > 0) {
+                building.damageContainer.removeChildren();
+            }
         }
     }
 
@@ -327,6 +331,7 @@ function classBomber() {
             if (aircraft.mode === Const.FLYING && isGameReady) {
                 aircraft.setFlightMode(Const.DESCENDING);
                 engineSound.stop();
+                currentScore.saveGameData();
                 panels.showNextLevelPanel(() => landAircraft());
             }
         }
@@ -381,10 +386,35 @@ function classBomber() {
         }
     }
 
+    function startGame() {
+        createBuildings();
+        panels.hideNextLevelPanel();
+        panels.hideBeginGameContainer();
+    }
+
     function handleInput() {
         window.addEventListener('keydown', (event) => {
             if (!isGameReady) return;
 
+            if (aircraft.mode === Const.NEW) {
+                if (event.code === 'Enter') {
+                    currentScore.level = currentScore.level + 1;
+                    if (currentScore.level > levels.length - 1) {
+                        currentScore.level = 1;
+                    }
+
+                    startGame();
+                }
+
+                if (event.code === 'KeyN' && currentScore.level > 1) {
+                    currentScore.reset();
+                    currentScore.level = 1;
+                    startGame();
+                }
+                return;
+            }
+
+            console.log(event.code);
             if (event.code === 'KeyT') {
                 testModeCounter++;
 
@@ -530,8 +560,8 @@ function classBomber() {
     function drawScores() {
         const scoreStyle = new PIXI.TextStyle({
             fontFamily: 'space-font',
-            fontSize: 20,
-            fill: 0x0818A8,
+            fontSize: 22,
+            fill: 'darkred',
             dropShadow: true,
             dropShadowColor: 0xeeeeee,
             dropShadowDistance: 1,
@@ -539,15 +569,15 @@ function classBomber() {
 
         const scoreValue = new PIXI.Text("" + currentScore.score, scoreStyle);
         scoreValue.x = 86;
-        scoreValue.y = 4;
+        scoreValue.y = 3;
 
         const levelValue = new PIXI.Text("" + currentScore.level, scoreStyle);
         levelValue.x = 422;
-        levelValue.y = 4;
+        levelValue.y = 3;
 
         const highScoreValue = new PIXI.Text("" + currentScore.highScore, scoreStyle);
         highScoreValue.x = 893;
-        highScoreValue.y = 4;
+        highScoreValue.y = 3;
 
         app.stage.addChild(scoreValue, levelValue, highScoreValue);
         return {scoreValue, levelValue, highScoreValue};
@@ -681,10 +711,6 @@ function classBomber() {
         }
 
         if (aircraft) aircraft.reset();
-    }
-
-    function log(message) {
-        if (testModeCounter === testModeActive) console.log(message)
     }
 
 // Resize function to maintain aspect ratio and handle padding

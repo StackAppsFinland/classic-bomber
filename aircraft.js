@@ -98,7 +98,7 @@ class Aircraft {
                 this.speed = this.speedMultiplier * this.originalSpeed;
                 this.originalSpeed = this.speed;
                 console.log("Aircraft calculated speed setting: " + this.speed);
-                this.setFlightMode(Const.NEXT);
+                this.setFlightMode(Const.NEW);
                 this.x = this.width * -4;
                 this.offscreenPerfTest = false;
                 this.perfTestCallback();
@@ -186,6 +186,8 @@ class Aircraft {
             case Const.READY:
                 break;
             case Const.RESTART:
+                break;
+            case Const.NEW:
                 break;
             case Const.CRASHED:
                 this.container.visible = false;

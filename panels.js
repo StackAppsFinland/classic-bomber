@@ -10,7 +10,6 @@ class Panels {
     }
 
     showBeginGamePanel() {
-        console.log("showBeginGamePanel")
         // Set the initial alpha of the retryContainer to 0 (invisible)
         this.beginGameContainer.alpha = 0;
 
@@ -80,7 +79,7 @@ class Panels {
         aircraft.setFlightMode(Const.RESTART)
     }
 
-    getBeginGameContainer() {
+    getBeginGameContainer(level) {
         this.beginGameContainer.alpha = 0;
 
         // Create a semi-transparent rounded rectangle
@@ -105,23 +104,32 @@ class Panels {
             dropShadowColor: 0x000000,
             dropShadowDistance: 3,
         });
-        const crashText = new PIXI.Text('- CITY BOMBER -', crashStyle);
-        crashText.anchor.set(0.5);
-        crashText.x = this.canvasWidth / 2;
-        crashText.y = 250;
-        this.beginGameContainer.addChild(crashText);
+        const titleText = new PIXI.Text('- CITY BOMBER -', crashStyle);
+        titleText.anchor.set(0.5);
+        titleText.x = this.canvasWidth / 2;
+        titleText.y = 250;
+        this.beginGameContainer.addChild(titleText);
 
         // Create the "Click 'Enter' to try again" text
-        const tryAgainStyle = new PIXI.TextStyle({
+        const newGameStyle = new PIXI.TextStyle({
             fontFamily: 'space-font',
             fontSize: 30,
             fill: 'white',
         });
-        const tryAgainText = new PIXI.Text('Click "Enter" to start game', tryAgainStyle);
-        tryAgainText.anchor.set(0.5);
-        tryAgainText.x = this.canvasWidth / 2;
-        tryAgainText.y = 370;
-        this.beginGameContainer.addChild(tryAgainText);
+
+        if (level > 0) {
+            const newGameText = new PIXI.Text('Click "N" for new game.', newGameStyle);
+            newGameText.anchor.set(0.5);
+            newGameText.x = this.canvasWidth / 2;
+            newGameText.y = 330;
+            this.beginGameContainer.addChild(newGameText);
+        }
+
+        const currentLevelText = new PIXI.Text('Click "Enter" for level ' + (level + 1), newGameStyle);
+        currentLevelText.anchor.set(0.5);
+        currentLevelText.x = this.canvasWidth / 2;
+        currentLevelText.y = 370;
+        this.beginGameContainer.addChild(currentLevelText);
 
         return this.beginGameContainer;
     }
