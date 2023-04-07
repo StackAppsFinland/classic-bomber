@@ -15,9 +15,13 @@ WebFont.load({
         families: ['space-font'],
         urls: ['SHPinscher-Regular.otf']
     },
-    active: function() {
+    active: function () {
         // Initialize your PIXI.js application here
-        classBomber();
+        const imageLoader = new ImageLoader();
+        imageLoader.loadImages(() => {
+            console.log("Loading images....")
+            classBomber();
+        });
     }
 });
 
@@ -83,8 +87,6 @@ function classBomber() {
     let directHitBonus = 0;
     let bonusPoints = 0;
     let testModeCounter = 4;
-    const clouds = [];
-    const cloudSpeed = 1;
     let initialDelay = 0;
     let aircraftSpeed = 1.35;
     let isGameReady = false;
@@ -126,11 +128,14 @@ function classBomber() {
     const bonusMessageContainer = new PIXI.Container();
     app.stage.addChild(bonusMessageContainer);
 
+    const cloudContainer = new PIXI.Container();
+    app.stage.addChild(cloudContainer);
+
     const panels = new Panels(canvasWidth, canvasHeight);
     app.stage.addChild(panels.getBeginGameContainer(currentScore.level));
     app.stage.addChild(panels.getRetryContainer());
     app.stage.addChild(panels.getNextLevelContainer());
-
+addCloudToContainer();
     app.ticker.add(gameLoop);
 
     function performanceTestReady() {
@@ -148,6 +153,7 @@ function classBomber() {
         updateBombs();
         updateBuildingDamage();
         updateSpecialEffects();
+        moveClouds();
     }
 
     function updateSpecialEffects() {
@@ -161,6 +167,33 @@ function classBomber() {
             }
         }
     }
+
+    function addCloudToContainer(imageURL) {
+        const cloudTexture = PIXI.Texture.from('images/cloud1.png');
+        const cloud = new PIXI.Sprite(cloudTexture);
+
+        cloud.x = canvasWidth + 1;
+        cloud.y = Math.random() * (450 - 50) + 50;
+        cloud.vx = -0.5;
+        cloud.alpha = 0.25;
+
+        cloudContainer.addChild(cloud);
+    }
+
+    function moveClouds() {
+        for (let i = 0; i < cloudContainer.children.length; i++) {
+            const cloud = cloudContainer.children[i];
+            cloud.x += cloud.vx;
+
+            // Remove the cloud from the container when it's off-screen
+            if (cloud.x < -cloud.width) {
+                cloudContainer.removeChild(cloud);
+                i--; // Decrement the index to account for the removed child
+                addCloudToContainer();
+            }
+        }
+    }
+
 
     function dropBomb() {
         if (aircraft.mode === Const.FLYING) {

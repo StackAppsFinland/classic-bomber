@@ -1,5 +1,6 @@
 class ImageLoader {
   constructor() {
+    this.container = new PIXI.Container();
     this.loader = new PIXI.Loader();
   }
 
@@ -88,14 +89,28 @@ class ImageLoader {
       'storey9.png',
       'type1-base.png',
       'waveSheet-7x9x4.png',
-      'waveSheet.png'
+      'waveSheet.png',
+        'cloud1.png',
+        'cloud2.png',
+        'cloud3.png',
+        'cloud4.png',
+        'cloud5.png',
+        'cloud6.png',
+        'cloud7.png',
+        'cloud8.png',
+        'cloud9.png',
+        'cloud10.png',
+        'cloud11.png',
+        'cloud12.png'
     ];
 
     imageFilenames.forEach((filename) => {
+      console.log(this.loader)
       this.loader.add(filename, `images/${filename}`);
     });
 
     this.loader.load(() => {
+
       if (callback) {
         callback();
       }
