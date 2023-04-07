@@ -20,7 +20,7 @@ class Building {
         this.damageRectangles = [];
         this.revealSpeed = 170;
         this.speedMultiplier = speedMultiplier;
-        this.callback = null;
+        this.callbackWhenRemovalComplete = null;
     }
 
     getBuildingContainer() {
@@ -71,10 +71,13 @@ class Building {
         mask.endFill();
     }
 
-    setRemovalAmount(amount, callback) {
+    setRemovalAmount(amount) {
         this.removalAmount = amount;
         this.noteIndex = 0;
-        this.callback = callback;
+    }
+
+    removalComplete(callback) {
+        this.callbackWhenRemovalComplete = callback;
     }
 
     removalBlock(notes, stage, specialEffects) {
@@ -93,7 +96,20 @@ class Building {
                 specialEffects.push(explosion);
                 this.removalAmount--;
 
-                if (this.removalAmount <= 0 && this.container.children.length > 0) this.createDamagedArea()
+                if (this.container.children.length === 0) {
+                    this.removalAmount = 0;
+                    this.damageContainer.removeChildren();
+                    try {
+                        this.callbackWhenRemovalComplete();
+                    }
+                    catch(ex) {}
+                } else if (this.removalAmount <= 0) {
+                    this.createDamagedArea();
+                    try {
+                        this.callbackWhenRemovalComplete();
+                    }
+                    catch(ex) {}
+                }
             }
         }
     }
@@ -103,7 +119,6 @@ class Building {
     }
 
     createDamagedArea() {
-        //this.callback();
         this.damageContainer.removeChildren();
 
         if (this.container.children.length < 1) {

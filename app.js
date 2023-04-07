@@ -210,6 +210,7 @@ function classBomber() {
     function updateBombs() {
         for (let i = bombContainer.children.length - 1; i >= 0; i--) {
             const bombSpriteContainer = bombContainer.children[i];
+            if (bombSpriteContainer.bombInstance.isExploded) return;
             bombSpriteContainer.bombInstance.updatePosition();
 
             if (bombSpriteContainer.y > canvasHeight) {
@@ -230,9 +231,8 @@ function classBomber() {
                         const building = buildingSpriteContainer.buildingInstance;
                         const bounds = buildingSpriteContainer.getBounds();
                         soundsBombFalling.stop();
+                        bombSpriteContainer.bombInstance.exploded();
 
-                        bombContainer.removeChild(bombSpriteContainer);
-                        updateBombsAvailable()
                         building.setRemovalAmount(2);
 
                         // calculate distance from center of building.
@@ -284,6 +284,11 @@ function classBomber() {
 
                         createExplosion(bombSpriteContainer.x, bounds.y + 8, 1000, 100);
                         createBuildingExplosion(bombSpriteContainer.x, bounds.y + 20, 2000, 100);
+                        building.removalComplete(() => {
+                            console.log("removal complete")
+                            bombContainer.removeChild(bombSpriteContainer);
+                            updateBombsAvailable()
+                        })
                         break;
                     }
                 }
@@ -663,6 +668,7 @@ function classBomber() {
         }
 
         panels.hideCrashedPanel();
+        bombContainer.removeChildren();
         buildingsContainer.removeChildren();
         buildingDamageContainer.removeChildren()
 

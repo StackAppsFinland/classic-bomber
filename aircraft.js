@@ -40,11 +40,14 @@ class Aircraft {
     }
 
     reset() {
+        console.log("here")
         this.mode = Const.READY;
         this.flightLevel = 1;
         this.calculatePlayYPos();
         this.levelFlight()
         this.x = this.width * -2;
+        this.container.x = this.x;
+        this.container.y = this.y;
         this.speed = this.originalSpeed;
     }
 

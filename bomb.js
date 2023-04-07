@@ -8,6 +8,7 @@ class Bomb {
         this.width = 9;
         this.height = 16;
         this.container = new PIXI.Container();
+        this.isExploded = false;
     }
 
     getContainer() {
@@ -23,6 +24,11 @@ class Bomb {
         this.container.addChild(bomb);
         this.container.rotation = -Math.PI / 2;
         return this.container;
+    }
+
+    exploded() {
+        this.isExploded = true;
+        this.container.visible = false;
     }
 
     updatePosition() {
