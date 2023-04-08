@@ -117,7 +117,7 @@ class Aircraft {
             if (this.mode === Const.FLYING) {
                 this.flightLevel++;
                 this.calculatePlayYPos()
-                const opacity = this.calculatedBombSightOpacity();
+                this.calculatedBombSightOpacity();
             }
             this.x = -this.width;
         }
@@ -150,7 +150,6 @@ class Aircraft {
         const normalizedY = (endY - this.y) / (endY - startY);
         const opacity = Math.max(Math.pow(normalizedY, exponent) * opacityRange, 0);
         this.lineGraphics.alpha = opacity;
-        return opacity;
     }
 
     step() {
