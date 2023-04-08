@@ -168,7 +168,7 @@ function classBomber(imageLoader) {
         if (canvasWidth + 1.> cloudContainer.getBounds().x + cloudContainer.getBounds().width) {
             const cloud = new PIXI.Sprite(images.getRandomImage("cloud"));
             cloud.x = canvasWidth + 1;
-            const max = 400 - cloud.height;
+            const max = 470 - cloud.height;
             cloud.y = Math.floor(Math.random() * (max - 40 + 1)) + 40
             cloud.vx = -0.3 * aircraft.speedMultiplier;
 
@@ -202,8 +202,8 @@ function classBomber(imageLoader) {
     }
 
     function setNextRandomCloudTime() {
-        const minTime = 10000;
-        const maxTime = 30000;
+        const minTime = 5000;
+        const maxTime = 10000;
         nextCloudTime = Date.now() + Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
     }
 
