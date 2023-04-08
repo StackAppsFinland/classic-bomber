@@ -6,9 +6,9 @@ class Building {
         this.x = x;
         this.y = y;
         this.blocks = blocks;
-        this.baseImg = PIXI.Texture.from(images.getRandomImage("base"));
-        this.roofImg = PIXI.Texture.from(images.getRandomImage("roof"));
-        this.storeyImg = PIXI.Texture.from(images.getRandomImage("storey"));
+        this.baseImg = images.getRandomImage("base");
+        this.roofImg = images.getRandomImage("roof");
+        this.storeyImg = images.getRandomImage("storey");
         this.container = new PIXI.Container();
         this.damageContainer = new PIXI.Container();
         this.isRevealed = false;
@@ -27,16 +27,15 @@ class Building {
         for (let i = 0; i < this.blocks; i++) {
             const posY = this.y - (i + 1) * Const.BLOCK_HEIGHT;
 
-            let blockTexture;
+            let blockSprite;
             if (i === 0) {
-                blockTexture = this.baseImg;
+                blockSprite = new PIXI.Sprite(this.baseImg);
             } else if (i === this.blocks - 1) {
-                blockTexture = this.roofImg;
+                blockSprite = new PIXI.Sprite(this.roofImg);
             } else {
-                blockTexture = this.storeyImg;
+                blockSprite = new PIXI.Sprite(this.storeyImg);
             }
 
-            const blockSprite = new PIXI.Sprite(blockTexture);
             blockSprite.x = this.x;
             blockSprite.y = posY;
             blockSprite.width = Const.BUILDING_WIDTH;

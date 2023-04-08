@@ -4,7 +4,7 @@ import Const from './constants.js';
 const timeOverDistanceBaseLineMillis = 384;
 
 class Aircraft {
-    constructor(app, currentScore, speed, perfTestCallback) {
+    constructor(app, currentScore, speed, perfTestCallback, images) {
         this.app = app;
         this.mode = Const.READY;
         this.width = 62;
@@ -18,10 +18,14 @@ class Aircraft {
         this.x = this.width * -2;
         this.speed = speed;
         this.originalSpeed = speed;
-        this.planeImg = PIXI.Texture.from(`images/bomber.png`);
-        this.propellerImgs = ['images/propeller1.png', 'images/propeller2.png', 'images/propeller3.png', 'images/propeller2.png'].map(src => {
-            const img = PIXI.Texture.from(src);
-            return img;
+        this.planeImg = images.getImage("bomber");
+        // change to sprite sheet
+        this.propellerImgs = [images.getImage('propeller1'),
+            images.getImage('propeller2'),
+            images.getImage('propeller3'),
+            images.getImage('propeller2')
+        ].map(src => {
+            return src;
         });
 
         this.container = new PIXI.Container();
@@ -40,10 +44,10 @@ class Aircraft {
     }
 
     reset() {
-        console.log("here")
         this.mode = Const.READY;
         this.flightLevel = 1;
         this.calculatePlayYPos();
+        this.calculatedBombSightOpacity();
         this.levelFlight()
         this.x = this.width * -2;
         this.container.x = this.x;
@@ -72,12 +76,12 @@ class Aircraft {
 
     createDottedLine() {
         // Set the alpha value to 0.5
-        this.lineGraphics.lineStyle(2, 0xFFFFFF, 0.9, 0.5, true);
+        this.lineGraphics.lineStyle(2, 0xFFFFFF, 1.0, 0.5, true);
         this.lineGraphics.moveTo(0, 0);
 
         const screenHeight = this.app.screen.height;
 
-        for (let i = 0; i <screenHeight; i += 10) {
+        for (let i = 0; i < screenHeight; i += 10) {
             this.lineGraphics.lineTo(0, i);
             i += 5;
             this.lineGraphics.moveTo(0, i);
@@ -113,6 +117,7 @@ class Aircraft {
             if (this.mode === Const.FLYING) {
                 this.flightLevel++;
                 this.calculatePlayYPos()
+                const opacity = this.calculatedBombSightOpacity();
             }
             this.x = -this.width;
         }
@@ -134,6 +139,18 @@ class Aircraft {
 
         this.container.addChildAt(prop, 1);
         this.container.removeChild(oldSprite);
+    }
+
+    calculatedBombSightOpacity() {
+        const startY = 34;
+        const endY = 500;
+        const startingOpacity = 1.0;
+        const opacityRange = startingOpacity;
+        const exponent = 1.10; // Increase this value to make the line fade away more quickly
+        const normalizedY = (endY - this.y) / (endY - startY);
+        const opacity = Math.max(Math.pow(normalizedY, exponent) * opacityRange, 0);
+        this.lineGraphics.alpha = opacity;
+        return opacity;
     }
 
     step() {

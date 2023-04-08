@@ -83,8 +83,8 @@ function classBomber(imageLoader) {
     let initialDelay = 0;
     let aircraftSpeed = 1.35;
     let isGameReady = false;
-    let nextCloudTime = generateRandomTime();
-    let lastCloudTime = 0;
+    let nextCloudTime = 0;
+    setNextRandomCloudTime();
 
 // Create a PixiJS Application
     const app = new PIXI.Application({
@@ -114,7 +114,7 @@ function classBomber(imageLoader) {
     app.stage.addChild(buildingsContainer);
     const buildingDamageContainer = new PIXI.Container();
     app.stage.addChild(buildingDamageContainer);
-    const aircraft = new Aircraft(app, currentScore, aircraftSpeed, performanceTestReady);
+    const aircraft = new Aircraft(app, currentScore, aircraftSpeed, performanceTestReady, images);
     const bombContainer = new PIXI.Container();
     app.stage.addChild(bombContainer);
 
@@ -136,7 +136,7 @@ function classBomber(imageLoader) {
     function performanceTestReady() {
         aircraftSpeed = aircraft.originalSpeed;
         panels.showBeginGamePanel();
-        console.log(aircraftSpeed)
+        console.log("Aircraft calculated speed: " + aircraftSpeed)
         isGameReady = true;
     }
 
@@ -149,6 +149,7 @@ function classBomber(imageLoader) {
         updateBuildingDamage();
         updateSpecialEffects();
         moveClouds();
+        randomlyAddClouds();
     }
 
     function updateSpecialEffects() {
@@ -164,30 +165,46 @@ function classBomber(imageLoader) {
     }
 
     function addCloudToContainer() {
-        const cloud = new PIXI.Sprite(images.getRandomImage("cloud"));
-        cloud.x = canvasWidth + 1;
-        const max = 400 - cloud.height;
-        cloud.y = Math.floor(Math.random() * (max - 40 + 1)) + 40
-        cloud.vx = -0.5;
-        cloud.alpha = 0.25;
+        if (canvasWidth + 1.> cloudContainer.getBounds().x + cloudContainer.getBounds().width) {
+            const cloud = new PIXI.Sprite(images.getRandomImage("cloud"));
+            cloud.x = canvasWidth + 1;
+            const max = 400 - cloud.height;
+            cloud.y = Math.floor(Math.random() * (max - 40 + 1)) + 40
+            cloud.vx = -0.3 * aircraft.speedMultiplier;
 
-        cloudContainer.addChild(cloud);
+            const gameLevel = getCurrentLevel();
+            const maxLevel = 20;
+            const level = Math.min(gameLevel.id, maxLevel); // Ensure level doesn't exceed maxLevel
 
-        generateRandomTime();
+            const initialOpacity = 0.25;
+            const opacityStep = (1 - initialOpacity) / maxLevel;
+
+            const opacity = initialOpacity + opacityStep * gameLevel.id;
+            cloud.alpha = opacity;
+            cloudContainer.addChild(cloud);
+        }
+
+        setNextRandomCloudTime();
     }
 
-    function randomlyAddClouds(currentTime) {
-        if (currentTime - this.lastCloudTime >= this.nextCloudTime) {
-            if (cloudContainer.length < currentScore.level.clouds) addCloudToContainer();
-            nextCloudTime = this.generateRandomTime();
-            lastCloudTime = currentTime;
+    function getCurrentLevel() {
+        let gameLevel = levels.find(level => level.id === currentScore.level);
+        if (!gameLevel) gameLevel = levels.find(level => level.id === 1);
+        return gameLevel;
+    }
+
+    function randomlyAddClouds() {
+        if (Date.now() > nextCloudTime) {
+            let gameLevel = getCurrentLevel();
+            if (cloudContainer.children.length < gameLevel.clouds) addCloudToContainer();
+            setNextRandomCloudTime();
         }
     }
 
-    function generateRandomTime() {
+    function setNextRandomCloudTime() {
         const minTime = 10000;
         const maxTime = 30000;
-        return Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
+        nextCloudTime = Date.now() + Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
     }
 
     function moveClouds() {
@@ -216,7 +233,7 @@ function classBomber(imageLoader) {
             if (bombX - 4 < 0 || bombX + 5 > canvasWidth)  return;
 
             const bombY = aircraft.container.y + 10;
-            const bomb = new Bomb(bombX - 4, bombY, aircraftSpeed * 2);
+            const bomb = new Bomb(bombX - 4, bombY, aircraftSpeed * 2, images.getImage("bomb"));
             const bombSpriteContainer = bomb.getContainer();
             bombSpriteContainer.bombInstance = bomb;
             bombContainer.addChild(bombSpriteContainer);
@@ -328,7 +345,6 @@ function classBomber(imageLoader) {
                         createExplosion(bombSpriteContainer.x, bounds.y + 8, 1000, 100);
                         createBuildingExplosion(bombSpriteContainer.x, bounds.y + 20, 2000, 100);
                         building.removalComplete(() => {
-                            console.log("removal complete")
                             bombContainer.removeChild(bombSpriteContainer);
                             updateBombsAvailable()
                         })
@@ -462,7 +478,6 @@ function classBomber(imageLoader) {
                 return;
             }
 
-            console.log(event.code);
             if (event.code === 'KeyT') {
                 testModeCounter++;
 
@@ -639,7 +654,7 @@ function classBomber(imageLoader) {
 
     function createBombsAvailable() {
         const bombCount = 3;
-        const bombTexture = PIXI.Texture.from('images/bomb.png');
+        const bombTexture = images.getImage("bomb");
         const bombContainer = new PIXI.Container();
 
         for (let i = 0; i < bombCount; i++) {
@@ -722,8 +737,7 @@ function classBomber(imageLoader) {
 
         engineSound.play();
 
-        let gameLevel = levels.find(level => level.id === currentScore.level);
-        if (!gameLevel) gameLevel = levels.find(level => level.id === 1);
+        let gameLevel = getCurrentLevel();
         allowedNumberOfBombs = gameLevel.numberOfBombs;
         updateBombsAvailable();
 

@@ -1,5 +1,5 @@
 class Bomb {
-    constructor(x, y, speed = 4) {
+    constructor(x, y, speed = 4, texture) {
         this.x = x;
         this.y = y;
         this.speed = speed;
@@ -9,10 +9,11 @@ class Bomb {
         this.height = 16;
         this.container = new PIXI.Container();
         this.isExploded = false;
+        this.texture = texture;
     }
 
     getContainer() {
-        const bomb = new PIXI.Sprite(PIXI.Texture.from(`images/bomb.png`));
+        const bomb = new PIXI.Sprite(this.texture);
         bomb.x = 0;
         bomb.y = 0;
         bomb.width = this.width;
