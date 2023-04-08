@@ -14,7 +14,7 @@ class ImageLoader {
       'bomb.png',
       'bomber.png',
       'bomberSheet-37x380x4.png',
-      'cloud.png:12',
+      'cloud.png:41',
       'prop.png:3',
       'propeller-37x5x4.png',
       'propeller.png:3',
