@@ -7,6 +7,7 @@ class Panels {
         this.beginGameContainer = new PIXI.Container();
         this.retryContainer = new PIXI.Container();
         this.nextLevelContainer = new PIXI.Container();
+        this.pausedContainer = new PIXI.Container();
     }
 
     showBeginGamePanel() {
@@ -48,6 +49,14 @@ class Panels {
         });
     }
 
+    hidePauseContainer() {
+        this.pausedContainer.visible = false;
+    }
+
+    showPauseContainer() {
+        this.pausedContainer.visible = true;
+    }
+
     hideCrashedPanel() {
         // Fade out the retryContainer using GSAP with a 1-second delay
         gsap.to(this.retryContainer, {
@@ -77,6 +86,24 @@ class Panels {
 
     onFadeInComplete() {
         aircraft.setFlightMode(Const.RESTART)
+    }
+
+    getPauseContainer() {
+        const textStyle = new PIXI.TextStyle({
+            fontFamily: 'space-font',
+            fontSize: 30,
+            fill: 'red',
+            dropShadow: true,
+            dropShadowColor: 0x000000,
+            dropShadowDistance: 3,
+        });
+        const pausedText = new PIXI.Text('- GAME PAUSED -', textStyle);
+        pausedText.anchor.set(0.5);
+        pausedText.x = this.canvasWidth / 2;
+        pausedText.y = 270;
+        this.pausedContainer.addChild(pausedText);
+        this.pausedContainer.visible = false;
+        return this.pausedContainer;
     }
 
     getBeginGameContainer(level) {

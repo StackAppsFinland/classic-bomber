@@ -28,11 +28,18 @@ class Aircraft {
             return src;
         });
 
+        this.planeImgs = [images.getImage('plane1'),
+            images.getImage('plane2'),
+            images.getImage('plane3'),
+            images.getImage('plane2')
+        ].map(src => {
+            return src;
+        });
+
         this.container = new PIXI.Container();
         this.bombSightContainer = new PIXI.Container();
         this.propellerIndex = 0;
-        this.propellerChange = 0;
-        this.isPaused = false;
+        this.planeIndex = 0;
         this.rotationAngle = 0; // initial rotation angle is 0 degrees
         this.rotationSpeed = 5; // replace 5 with any value that works for your needs
         this.rotationTarget = 0;
@@ -41,6 +48,12 @@ class Aircraft {
         this.timeTest = 0;
         this.speedMultiplier = 1.0;
         this.perfTestCallback = perfTestCallback;
+
+        this.lastPropImageChange = 0;
+        this.propImageInterval = 10;
+
+        this.lastPlaneImageChange = 0;
+        this.planeImageInterval = 40;
     }
 
     reset() {
@@ -127,18 +140,38 @@ class Aircraft {
         this.bombSightContainer.x = this.x + this.halfWidth;
         this.bombSightContainer.y = this.y + this.imageHeight - 10;
 
-        this.propellerIndex++;
-        if (this.propellerIndex > 3) this.propellerIndex = 0;
+        const currentTime = performance.now();
+        if (currentTime - this.lastPropImageChange >= this.propImageInterval) {
+            this.lastPropImageChange = currentTime;
+            this.propellerIndex++;
+            if (this.propellerIndex > 3) this.propellerIndex = 0;
 
-        const oldSprite = this.container.children[1];
-        const prop = new PIXI.Sprite(this.propellerImgs[this.propellerIndex]);
-        prop.x = this.width;
-        prop.y = 0;
-        prop.width = this.propWidth;
-        prop.height = this.imageHeight;
+            const oldSprite = this.container.children[1];
+            const prop = new PIXI.Sprite(this.propellerImgs[this.propellerIndex]);
+            prop.x = this.width;
+            prop.y = 0;
+            prop.width = this.propWidth;
+            prop.height = this.imageHeight;
 
-        this.container.addChildAt(prop, 1);
-        this.container.removeChild(oldSprite);
+            this.container.addChildAt(prop, 1);
+            this.container.removeChild(oldSprite);
+        }
+
+        if (currentTime - this.lastPlaneImageChange >= this.planeImageInterval) {
+            this.lastPlaneImageChange = currentTime;
+            this.planeIndex++;
+            if (this.planeIndex > 3) this.planeIndex = 0;
+
+            const oldSprite = this.container.children[0];
+            const plane = new PIXI.Sprite(this.planeImgs[this.planeIndex]);
+            plane.x = 0;
+            plane.y = 0;
+            plane.width = this.width;
+            plane.height = this.imageHeight;
+
+            this.container.addChildAt(plane, 0);
+            this.container.removeChild(oldSprite);
+        }
     }
 
     calculatedBombSightOpacity() {
@@ -172,14 +205,6 @@ class Aircraft {
     stepDown() {
         this.flightLevel++;
         this.calculatePlayYPos()
-    }
-
-    togglePause() {
-        this.isPaused = !this.isPaused;
-
-        if (this.mode === "landed" && !this.isPaused) {
-            this.takeOff();
-        }
     }
 
     setFlightMode(mode) {
@@ -231,29 +256,6 @@ class Aircraft {
 
     calculatePlayYPos() {
         this.y = this.startingPositionY + (this.levelHeight * (this.flightLevel - 1));
-    }
-
-    update(canvasWidth) {
-        if (!this.isPaused) {
-            this.x += this.speed;
-        }
-
-        if (this.x > canvasWidth) {
-            if (this.mode === Const.FLYING) {
-                this.flightLevel++;
-                this.calculatePlayYPos();
-            }
-            this.x = this.width * -1;
-        }
-
-        if (!this.isPaused)
-            this.propellerChange++;
-        else
-            this.propellerIndex = 0;
-
-        if (this.propellerChange % 3 === 0) {
-            this.propellerIndex = (this.propellerIndex + 1) % this.propellerImgs.length;
-        }
     }
 
     rotateCounterClockwise() {

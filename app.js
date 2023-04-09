@@ -9,6 +9,7 @@ import levels from './levels.js';
 import ParticleExplosion from "./particleExplosion.js";
 import BonusMessage from "./bonusMessage.js";
 import Const from "./constants.js";
+import bomb from "./bomb.js";
 
 WebFont.load({
     custom: {
@@ -70,7 +71,6 @@ function classBomber(imageLoader) {
     const images = imageLoader;
     const groundHeight = 10;
     const buildingGap = 8;
-    const testModeActive = 4;
     const currentScore = new Score();
     let buildings = [];
     let currentBuilding = 0;
@@ -79,11 +79,12 @@ function classBomber(imageLoader) {
     let specialEffects = [];
     let directHitBonus = 0;
     let bonusPoints = 0;
-    let testModeCounter = 4;
+    let testModeCounter = 0;
     let initialDelay = 0;
     let aircraftSpeed = 1.35;
     let isGameReady = false;
     let nextCloudTime = 0;
+    let isPaused = false;
     setNextRandomCloudTime();
 
 // Create a PixiJS Application
@@ -130,6 +131,12 @@ function classBomber(imageLoader) {
     app.stage.addChild(panels.getBeginGameContainer(currentScore.level));
     app.stage.addChild(panels.getRetryContainer());
     app.stage.addChild(panels.getNextLevelContainer());
+    app.stage.addChild(panels.getPauseContainer());
+    const testModeContainer = new PIXI.Container();
+    testModeContainer.visible = false;
+    drawTestMode();
+    app.stage.addChild(testModeContainer);
+
     addCloudToContainer();
     app.ticker.add(gameLoop);
 
@@ -142,6 +149,7 @@ function classBomber(imageLoader) {
 
 // Define the game loop
     function gameLoop() {
+        if (isPaused) return
         updateScoreDisplay();
         revealBuildings();
         updateAircraft();
@@ -220,7 +228,6 @@ function classBomber(imageLoader) {
             }
         }
     }
-
 
     function dropBomb() {
         if (aircraft.mode === Const.FLYING) {
@@ -460,6 +467,20 @@ function classBomber(imageLoader) {
         window.addEventListener('keydown', (event) => {
             if (!isGameReady) return;
 
+            if (event.code === "KeyP") {
+                if (isPaused) {
+                    panels.hidePauseContainer();
+                    isPaused = false;
+                    Howler.mute(false);
+                } else {
+                    panels.showPauseContainer();
+                    isPaused = true;
+                    Howler.mute(true);
+                }
+            }
+
+            if (isPaused) return;
+
             if (aircraft.mode === Const.NEW) {
                 if (event.code === 'Enter') {
                     currentScore.level = currentScore.level + 1;
@@ -478,25 +499,9 @@ function classBomber(imageLoader) {
                 return;
             }
 
-            if (event.code === 'KeyT') {
-                testModeCounter++;
-
-                if (testModeCounter > 3) {
-                    aircraft.speed = 0;
-                }
-
-                return;
-            }
-
-            if (testModeCounter <= 3)
-                testModeCounter = 0;
-
-            if (event.code === 'Space') {
-                dropBomb();
-            }
-
-            if (event.code === 'Enter' && (aircraft.mode === Const.NEXT || aircraft.mode === Const.DESCENDING ||
-                aircraft.mode === Const.FLARE || aircraft.mode === Const.LANDED)) {
+            if ((aircraft.mode === Const.NEXT || aircraft.mode === Const.DESCENDING ||
+                aircraft.mode === Const.FLARE || aircraft.mode === Const.LANDED)
+                && event.code === 'Enter') {
                 currentScore.level = currentScore.level + 1;
 
                 if (currentScore.level > levels.length - 1) {
@@ -508,16 +513,24 @@ function classBomber(imageLoader) {
                 panels.hideBeginGameContainer();
             }
 
+            if (event.code === 'KeyT') {
+                testModeCounter++;
+                if (testModeCounter > 3) {
+                    aircraft.speed = 0;
+                    testModeContainer.visible = true;
+                }
+                return;
+            }
+
+            if (testModeCounter <= 3)
+                testModeCounter = 0;
+
+            if (event.code === 'Space') {
+                dropBomb();
+            }
+
             if (event.code === 'KeyR' && aircraft.mode === Const.RESTART) {
                 createBuildings();
-            }
-
-            if (event.code === "KeyP") {
-                // skip to next level when complete without watching plane land
-            }
-
-            if (event.code === 'KeyP') {
-                aircraft.togglePause()
             }
 
             if (testModeCounter > 3) {
@@ -525,6 +538,7 @@ function classBomber(imageLoader) {
                     aircraft.setFlightMode(Const.FLYING);
                     aircraft.speed = aircraftSpeed;
                     testModeCounter = 0;
+                    testModeContainer.visible = false;
                 }
                 if (event.code === 'ArrowRight') {
                     aircraft.step()
@@ -693,6 +707,22 @@ function classBomber(imageLoader) {
         }
     }
 
+    function drawTestMode() {
+        const groundGraphics = new PIXI.Graphics();
+
+        // Draw the faded purple test lines
+        for (let y = canvasHeight - groundHeight; y >= 0; y -= 16) {
+            drawDashedLine(groundGraphics, 0, y, canvasWidth, y, 2, 0x800080, 0.25)
+            // Display the y value just under the purple line on the left
+            const yText = new PIXI.Text(Math.round(y), { fontFamily: 'space-font', fontSize: 12, fill: 'black' });
+            yText.alpha = 0.5;
+            yText.x = 0;
+            yText.y = y + 12;
+        }
+
+        testModeContainer.addChild(groundGraphics);
+    }
+
     function drawStaticParts() {
         const groundGraphics = new PIXI.Graphics();
         groundGraphics.beginFill(0x37AE0F); // Green color
@@ -703,17 +733,6 @@ function classBomber(imageLoader) {
         drawDashedLine(groundGraphics, 0, canvasHeight - groundHeight, canvasWidth,
             canvasHeight - groundHeight, 1, 0x006400, 1.0)
 
-        // Draw the faded purple test lines
-        /* for (let y = canvasHeight - groundHeight; y >= 0; y -= 16) {
-            drawDashedLine(groundGraphics, 0, y, canvasWidth, y, 2, 0x800080, 0.25)
-             // Display the y value just under the purple line on the left
-             const yText = new PIXI.Text(Math.round(y), { fontFamily: 'space-font', fontSize: 12, fill: 'black' });
-             yText.alpha = 0.5;
-             yText.x = 0;
-             yText.y = y + 12;
-             groundGraphics.addChild(yText);
-         }
-         */
         app.stage.addChild(groundGraphics);
         return groundGraphics;
     }

@@ -12,17 +12,14 @@ class ImageLoader {
     this.imageFilenames = [
       'base.png:28',
       'bomb.png',
-      'bomber.png',
-      'bomberSheet-37x380x4.png',
+      'plane.png:3',
       'cloud.png:67',
       'prop.png:3',
-      'propeller-37x5x4.png',
       'propeller.png:3',
       'roof.png:22',
       'storey.png:20',
       'type1-base.png',
-      'waveSheet-7x9x4.png',
-      'waveSheet.png'
+      'wave.png:3'
     ];
     this.textures = new Map();
     this.matchingTexturesCache = new Map();
