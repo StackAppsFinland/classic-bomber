@@ -1,7 +1,6 @@
 import GameLevel from './gameLevel.js';
 
 const levels = [
-    //new GameLevel(1, "normal",1, 30, 30, 3, 0, 2),
     new GameLevel(1, "normal",14, 2, 15, 1, 0, 2),
     new GameLevel(2, "normal",15, 2, 16, 1 ,0, 2),
     new GameLevel(3, "alt",18, 8, 25,1,  0, 2),
@@ -18,7 +17,7 @@ const levels = [
     new GameLevel(14, "normal",21, 17, 33, 2, 0, 8),
     new GameLevel(15, "static:24,24,24,24,26,26,26,26,28,28,28,28,26,26,26,26,24,24,24,24",20, 0, 0,1, 0, 4),
     new GameLevel(16, "alt:30-30", 18, 33, 33, 2, 0, 10),
-    new GameLevel(17, "static:33,33,24,24,26,26,26,26,28,28,28,28,26,26,26,26,24,24,33,33",20, 0, 0,3, 0, 4),
+    new GameLevel(17, "static:33,33,24,24,26,26,26,26,28,28,28,28,26,26,26,26,24,24,33,33",20, 0, 0,2, 0, 4),
     new GameLevel(18, "normal",21, 31, 32,3, 0, 4),
 ];
 

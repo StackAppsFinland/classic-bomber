@@ -186,9 +186,8 @@ function classBomber(imageLoader) {
 
             const initialOpacity = 0.25;
             const opacityStep = (1 - initialOpacity) / maxLevel;
-
-            const opacity = initialOpacity + opacityStep * gameLevel.id;
-            cloud.alpha = opacity;
+            
+            cloud.alpha = initialOpacity + opacityStep * level;
             cloudContainer.addChild(cloud);
         }
 
@@ -277,7 +276,7 @@ function classBomber(imageLoader) {
     function updateBombs() {
         for (let i = bombContainer.children.length - 1; i >= 0; i--) {
             const bombSpriteContainer = bombContainer.children[i];
-            if (bombSpriteContainer.bombInstance.isExploded) return;
+            if (!bombSpriteContainer.bombInstance || bombSpriteContainer.bombInstance.isExploded) continue;
             bombSpriteContainer.bombInstance.updatePosition();
 
             if (bombSpriteContainer.y > canvasHeight) {
@@ -300,34 +299,34 @@ function classBomber(imageLoader) {
                         soundsBombFalling.stop();
                         bombSpriteContainer.bombInstance.exploded();
 
-                        building.setRemovalAmount(2);
+                        let damageAmount = 0;
 
                         // calculate distance from center of building.
                         const center = buildingRect.x + (buildingRect.width / 2)
                         const difference = Math.abs(bombSpriteContainer.x - center);
 
-                        if (difference < 22) {
-                            building.setRemovalAmount(1);
+                        if (difference < 50) {
+                            damageAmount = 1;
                             currentScore.increment(1);
                         }
 
                         if (difference < 16) {
-                            building.setRemovalAmount(2);
+                            damageAmount = 2;
                             currentScore.increment(2);
                         }
 
                         if (difference < 12) {
-                            building.setRemovalAmount(3);
+                            damageAmount = 3;
                             currentScore.increment(3);
                         }
 
                         if (difference < 8) {
-                            building.setRemovalAmount(4);
+                            damageAmount = 4;
                             currentScore.increment(4);
                         }
 
                         if (difference < 5) {
-                            building.setRemovalAmount(6);
+                            damageAmount = 6;
                             currentScore.increment(6);
                             directHitBonus++;
                             bonusPoints += 10;
@@ -349,12 +348,12 @@ function classBomber(imageLoader) {
                             directHitBonus = 0;
                         }
 
+                        if (damageAmount > 0) building.setDamageAmount(damageAmount, bombSpriteContainer, () => {
+                            updateBombsAvailable()
+                        });
+
                         createExplosion(bombSpriteContainer.x, bounds.y + 8, 1000, 100);
                         createBuildingExplosion(bombSpriteContainer.x, bounds.y + 20, 2000, 100);
-                        building.removalComplete(() => {
-                            bombContainer.removeChild(bombSpriteContainer);
-                            updateBombsAvailable()
-                        })
                         break;
                     }
                 }
@@ -393,7 +392,7 @@ function classBomber(imageLoader) {
                 aircraft.setFlightMode(Const.CRASHED);
                 createExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 1500, 200);
                 createBuildingExplosion(aircraft.x + aircraft.width, aircraft.y + 8, 2500, 80);
-                buildingsContainer.children[j].buildingInstance.setRemovalAmount(2);
+                buildingsContainer.children[j].buildingInstance.setDamageAmount(2);
                 panels.showCrashedPanel(() =>  aircraft.setFlightMode(Const.RESTART));
             }
         }

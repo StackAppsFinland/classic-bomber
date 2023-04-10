@@ -13,14 +13,12 @@ class Building {
         this.damageContainer = new PIXI.Container();
         this.isRevealed = false;
         this.revealY = this.y;
-        this.removalAmount = 0;
-        this.noteIndex = 0;
         this.lastMillis = 0;
         this.topBlockY = 0;
         this.damageRectangles = [];
         this.revealSpeed = 170;
         this.speedMultiplier = speedMultiplier;
-        this.callbackWhenRemovalComplete = null;
+        this.damageQueue = [];
     }
 
     getBuildingContainer() {
@@ -70,13 +68,8 @@ class Building {
         mask.endFill();
     }
 
-    setRemovalAmount(amount) {
-        this.removalAmount = amount;
-        this.noteIndex = 0;
-    }
-
-    removalComplete(callback) {
-        this.callbackWhenRemovalComplete = callback;
+    setDamageAmount(amount, bombContainer, callback) {
+        this.damageQueue.push( { amount: amount, bombContainer: bombContainer, noteIndex: 0, callback: callback })
     }
 
     removalBlock(notes, stage, specialEffects) {
@@ -84,8 +77,9 @@ class Building {
 
         if (currentMillis > this.lastMillis) {
             this.lastMillis = currentMillis + this.revealSpeed;
-            if (this.removalAmount > 0 && this.container.children.length > 0) {
-                notes[this.noteIndex++].play('short');
+            if (this.damageQueue.length > 0 && this.container.children.length > 0) {
+                let damageItem = this.damageQueue[0];
+                notes[damageItem.noteIndex++].play('short');
                 const blockSprite = this.container.children[this.container.children.length - 1];
                 this.container.removeChild(blockSprite);
 
@@ -93,19 +87,29 @@ class Building {
                     blockSprite.y + Const.BLOCK_HEIGHT, 2300, 50, this.speedMultiplier);
                 stage.addChild(explosion.container);
                 specialEffects.push(explosion);
-                this.removalAmount--;
+                damageItem.amount--;
 
                 if (this.container.children.length === 0) {
-                    this.removalAmount = 0;
                     this.damageContainer.removeChildren();
+
+                    while (this.damageQueue.length > 0) {
+                        damageItem = this.damageQueue[0];
+                        damageItem.bombContainer.bombInstance = null;
+                        damageItem.bombContainer.parent.removeChild(damageItem.bombContainer);
+                        this.damageQueue.shift();
+                    }
+
                     try {
-                        this.callbackWhenRemovalComplete();
+                        damageItem.callback();
                     }
                     catch(ex) {}
-                } else if (this.removalAmount <= 0) {
+                } else if (damageItem.amount <= 0) {
                     this.createDamagedArea();
+                    damageItem.bombContainer.bombInstance = null;
+                    damageItem.bombContainer.parent.removeChild(damageItem.bombContainer);
+                    this.damageQueue.shift();
                     try {
-                        this.callbackWhenRemovalComplete();
+                        damageItem.callback();
                     }
                     catch(ex) {}
                 }

@@ -36,7 +36,6 @@ class Panels {
     }
 
     showNextLevelPanel(callback) {
-        console.log("showNextLevelPanel")
         // Set the initial alpha of the retryContainer to 0 (invisible)
         this.nextLevelContainer.alpha = 0;
 
@@ -145,14 +144,14 @@ class Panels {
         });
 
         if (level > 0) {
-            const newGameText = new PIXI.Text('Click "N" for new game.', newGameStyle);
+            const newGameText = new PIXI.Text('Press "N" for new game.', newGameStyle);
             newGameText.anchor.set(0.5);
             newGameText.x = this.canvasWidth / 2;
             newGameText.y = 330;
             this.beginGameContainer.addChild(newGameText);
         }
 
-        const currentLevelText = new PIXI.Text('Click "Enter" for level ' + (level + 1), newGameStyle);
+        const currentLevelText = new PIXI.Text('Press "Enter" for level ' + (level + 1), newGameStyle);
         currentLevelText.anchor.set(0.5);
         currentLevelText.x = this.canvasWidth / 2;
         currentLevelText.y = 370;
@@ -198,7 +197,7 @@ class Panels {
             fontSize: 30,
             fill: 'white',
         });
-        const tryAgainText = new PIXI.Text('Click "R" to try again', tryAgainStyle);
+        const tryAgainText = new PIXI.Text('Press "R" to try again', tryAgainStyle);
         tryAgainText.anchor.set(0.5);
         tryAgainText.x = this.canvasWidth / 2;
         tryAgainText.y = 370;
@@ -245,7 +244,7 @@ class Panels {
             fill: 'white',
         });
 
-        const tryAgainText = new PIXI.Text('Click "Enter" for next level', tryAgainStyle);
+        const tryAgainText = new PIXI.Text('Press "Enter" for next level', tryAgainStyle);
         tryAgainText.anchor.set(0.5);
         tryAgainText.x = this.canvasWidth / 2;
         tryAgainText.y = 370;
