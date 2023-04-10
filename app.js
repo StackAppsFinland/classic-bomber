@@ -186,7 +186,7 @@ function classBomber(imageLoader) {
 
             const initialOpacity = 0.25;
             const opacityStep = (1 - initialOpacity) / maxLevel;
-            
+
             cloud.alpha = initialOpacity + opacityStep * level;
             cloudContainer.addChild(cloud);
         }
