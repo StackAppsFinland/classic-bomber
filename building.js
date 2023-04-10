@@ -94,8 +94,14 @@ class Building {
 
                     while (this.damageQueue.length > 0) {
                         damageItem = this.damageQueue[0];
-                        damageItem.bombContainer.bombInstance = null;
-                        damageItem.bombContainer.parent.removeChild(damageItem.bombContainer);
+
+                        if (damageItem.bombContainer) {
+                            if (damageItem.bombContainer.bombInstance)
+                                damageItem.bombContainer.bombInstance = null;
+                            if (damageItem.bombContainer.parent.children.indexOf(damageItem.bombContainer) !== -1)
+                                damageItem.bombContainer.parent.removeChild(damageItem.bombContainer);
+                        }
+
                         this.damageQueue.shift();
                     }
 
@@ -105,8 +111,13 @@ class Building {
                     catch(ex) {}
                 } else if (damageItem.amount <= 0) {
                     this.createDamagedArea();
-                    damageItem.bombContainer.bombInstance = null;
-                    damageItem.bombContainer.parent.removeChild(damageItem.bombContainer);
+                    if (damageItem.bombContainer) {
+                        if (damageItem.bombContainer.bombInstance)
+                            damageItem.bombContainer.bombInstance = null;
+                        if (damageItem.bombContainer.parent.children.indexOf(damageItem.bombContainer) !== -1)
+                            damageItem.bombContainer.parent.removeChild(damageItem.bombContainer);
+                    }
+
                     this.damageQueue.shift();
                     try {
                         damageItem.callback();
