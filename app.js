@@ -766,33 +766,48 @@ function classBomber(imageLoader) {
         const totalWidth = buildingCount * Const.BUILDING_WIDTH + (buildingCount - 1) * buildingGap;
         const startX = (canvasWidth - totalWidth) / 2;
 
-        for (let i = 0; i < buildingCount; i++) {
-            let maxHeight = gameLevel.maxHeight;
-            let minHeight = gameLevel.minHeight;
+        if (gameLevel.ruleName.startsWith("static:")) {
+            const numbers = gameLevel.ruleName.split(":")[1].split(",");
+            let i=0;
+            for (const number of numbers) {
+                addBuilding(i++, startX, number, number);
+            }
+        } else {
+            for (let i = 0; i < buildingCount; i++) {
+                let maxHeight = gameLevel.maxHeight;
+                let minHeight = gameLevel.minHeight;
 
-            if (gameLevel.ruleName.startsWith('alt')) {
-                if (i % 2 === 0) {
-                    if (gameLevel.ruleName === 'alt') {
-                        continue;
-                    }
-                    if (gameLevel.ruleName === 'alt2') {
-                        minHeight = 2;
-                        maxHeight = 2
+                if (gameLevel.ruleName.startsWith('alt')) {
+                    if (i % 2 === 0) {
+                        if (gameLevel.ruleName === 'alt') {
+                            continue;
+                        }
+
+                        const range = gameLevel.ruleName.split(":")[1]; // get the range part of the string
+                        const [min, max] = range.split("-"); // split the range into min and max values
+                        if (min && max) {
+                            const randomInt = Math.floor(Math.random() * (parseInt(max) - parseInt(min) + 1) + parseInt(min));
+                            maxHeight = randomInt;
+                            minHeight = randomInt;
+                        }
                     }
                 }
+                addBuilding(i, startX, maxHeight, minHeight);
             }
-
-            const x = startX + i * (Const.BUILDING_WIDTH + buildingGap);
-            let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-            const building = new Building(x, canvasHeight - groundHeight, blocks, aircraft.speedMultiplier, images)
-            const buildingSpriteContainer = building.getBuildingContainer();
-            buildingSpriteContainer.buildingInstance = building;
-            buildingsContainer.addChild(buildingSpriteContainer)
-            buildingDamageContainer.addChild(building.damageContainer);
-            buildings.push(building);
         }
 
         if (aircraft) aircraft.reset();
+    }
+
+    function addBuilding(i, startX, maxHeight, minHeight) {
+        const x = startX + i * (Const.BUILDING_WIDTH + buildingGap);
+        let blocks = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+        const building = new Building(x, canvasHeight - groundHeight, blocks, aircraft.speedMultiplier, images)
+        const buildingSpriteContainer = building.getBuildingContainer();
+        buildingSpriteContainer.buildingInstance = building;
+        buildingsContainer.addChild(buildingSpriteContainer)
+        buildingDamageContainer.addChild(building.damageContainer);
+        buildings.push(building);
     }
 
 // Resize function to maintain aspect ratio and handle padding
