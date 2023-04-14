@@ -177,11 +177,12 @@ class Aircraft {
     calculatedBombSightOpacity() {
         const startY = 34;
         const endY = 500;
-        const startingOpacity = 1.0;
-        const opacityRange = startingOpacity;
+        const opacityRange = 1.0;
         const exponent = 1.10; // Increase this value to make the line fade away more quickly
         const normalizedY = (endY - this.y) / (endY - startY);
-        const opacity = Math.max(Math.pow(normalizedY, exponent) * opacityRange, 0);
+        let opacity = Math.max(Math.pow(normalizedY, exponent) * opacityRange, 0);
+        if (Number.isNaN(opacity) || opacity < 0) opacity = 0;
+
         this.lineGraphics.alpha = opacity;
     }
 
